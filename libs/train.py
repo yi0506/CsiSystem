@@ -100,6 +100,7 @@ def concurrent_train(epoch, model_list, ratio, velocity, multi=True):
         for snr in model_list:
             train_model_merged(epoch, snr, ratio, velocity)
 
+
 def rec_mkdir(file_path):
     """递归创建文件夹，如果文件夹不存在，就创建，存在就跳过，继续下一层"""
     dir_list = file_path.split('/')[:-1]

@@ -21,6 +21,22 @@ def normalize(input_):
     return output
 
 
+class Seq2Seq(nn.Module):
+    """训练模型三个部分合并封装"""
+    def __init__(self, snr, ratio):
+        super(Seq2Seq, self).__init__()
+        self.ratio = ratio
+        self.encoder = Encoder(ratio)
+        self.noise = Noise(snr, ratio)
+        self.decoder = Decoder()
+
+    def forward(self, input_):
+        encoder_output = self.encoder(input_)
+        add_noise = self.noise(encoder_output)
+        decoder_output = self.decoder(add_noise)
+        return decoder_output
+
+
 class Encoder(nn.Module):
     """MS压缩"""
     channel_num = config.channel_num
@@ -64,8 +80,6 @@ class Encoder(nn.Module):
         """
         # 标准化
         out = normalize(input_)  # [batch_size, 32*32]
-        # 全连接
-        # out = self.fc(out)  # [batch_size, 32*32]
         out = out.view(-1, self.channel_num, self.channel_num)  # [batch_size, 32, 32]
         # 分组卷积
         out = res_unit(self.group_conv1, out)  # [batch_size, 32, 32]
@@ -146,7 +160,7 @@ class Decoder(nn.Module):
         out = res_unit(self.deep_separate, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
         # 深度可分卷积
         out = res_unit(self.deep_separate_2, out)  # [batch_size, 32, 32] ----->[batch_size, 32 ,32]
-        # 全连接
+        # reshape
         output = out.view(-1, self.data_length)  # [batch_size, 32, 32] -----> [batch_size, 32*32]
         return output
 
