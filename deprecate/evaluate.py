@@ -1,10 +1,10 @@
 # -*- coding: UTF-8 -*-
 """测试每个网络模块的效果"""
 import torch
-from lib.model import Noise, Encoder, Decoder
+from libs.model import Noise, Encoder, Decoder
 from torch.nn.functional import cosine_similarity, mse_loss
-from lib import config
-from lib.csi_dataset import data_load
+from libs import config
+from libs.csi_dataset import data_load
 from tqdm import tqdm
 import numpy as np
 import time

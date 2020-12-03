@@ -9,11 +9,11 @@
 
 from tqdm import tqdm
 from torch.optim import Adam
-from lib.csi_dataset import data_load
-from lib import config
+from libs.csi_dataset import data_load
+from libs import config
 import torch
 import multiprocessing
-from lib.model import Noise, Encoder, Decoder
+from libs.model import Noise, Encoder, Decoder
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np

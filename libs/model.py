@@ -1,0 +1,212 @@
+"""csi网络模型"""
+import torch
+import torch.nn as nn
+from torchsummary import summary
+
+from libs import config
+
+
+def res_unit(func, input_):
+    """用过残差网络提取特征"""
+    out = func(input_)
+    output = out + input_  # 加入残差结构
+    return output
+
+
+def normalize(input_):
+    """归一化处理"""
+    mean = torch.mean(input_, dim=-1, keepdim=True)
+    std = torch.std(input_, dim=-1, keepdim=True)
+    output = (input_ - mean) / std
+    return output
+
+
+class Encoder(nn.Module):
+    """MS压缩"""
+    channel_num = config.channel_num
+    channel_multiple = config.channel_multiple
+    conv_group = config.conv_group
+    data_length = config.data_length
+
+    def __init__(self, ratio):
+        super(Encoder, self).__init__()
+        self.ratio = ratio
+        self.group_conv1 = nn.Sequential(
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU(),
+                                    nn.BatchNorm1d(self.channel_num * self.channel_multiple),
+                                    nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU()
+                                )
+        self.group_conv2 = nn.Sequential(
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU(),
+                                    nn.BatchNorm1d(self.channel_num * self.channel_multiple),
+                                    nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU()
+                                )
+        self.fc_out = nn.Sequential(
+                                nn.Linear(self.data_length, int(self.data_length / self.ratio)),
+                                nn.ELU()
+                        )
+
+    def forward(self, input_):
+        """
+        压缩：标准化 ----> 全连接 ----> 残差（分组卷积） ---> 残差（分组卷积） ---> 全连接压缩
+        :param input_: [batch_size, 32*32]
+        :return: [batch_size, 32*32/ratio]
+        """
+        # 标准化
+        out = normalize(input_)  # [batch_size, 32*32]
+        # 全连接
+        # out = self.fc(out)  # [batch_size, 32*32]
+        out = out.view(-1, self.channel_num, self.channel_num)  # [batch_size, 32, 32]
+        # 分组卷积
+        out = res_unit(self.group_conv1, out)  # [batch_size, 32, 32]
+        out = res_unit(self.group_conv2, out)  # [batch_size, 32, 32]
+        out = out.view(-1, self.channel_num * self.channel_num)  # [batch_size, 32*32]
+        # 全连接
+        output = self.fc_out(out)  # [batch_size, 32*32/ratio]
+        return output
+
+
+class Decoder(nn.Module):
+    """解压缩"""
+    channel_num = config.channel_num
+    channel_multiple = config.channel_multiple
+    conv_group = config.conv_group
+    data_length = config.data_length
+
+    def __init__(self):
+        super(Decoder, self).__init__()
+        self.deep_conv = nn.Sequential(
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
+                                              groups=self.channel_num, kernel_size=3, stride=1, padding=1),
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
+                                              groups=self.channel_num, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU()
+                                )
+        self.group_conv1 = nn.Sequential(
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU(),
+                                    nn.BatchNorm1d(self.channel_num * self.channel_multiple),
+                                    nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU()
+                                )
+        self.deep_separate = nn.Sequential(
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
+                                              groups=self.channel_num, kernel_size=3, stride=1, padding=1),
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
+                                              kernel_size=1, stride=1),
+                                    nn.ELU(),
+                                    nn.BatchNorm1d(self.channel_num * self.channel_multiple),
+                                    nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU()
+                                )
+        self.deep_separate_2 = nn.Sequential(
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
+                                              groups=self.channel_num, kernel_size=3, stride=1, padding=1),
+                                    nn.BatchNorm1d(self.channel_num),
+                                    nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
+                                              kernel_size=1, stride=1),
+                                    nn.ELU(),
+                                    nn.BatchNorm1d(self.channel_num * self.channel_multiple),
+                                    nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
+                                              groups=self.conv_group, kernel_size=3, stride=1, padding=1),
+                                    nn.ELU()
+                                )
+
+    def forward(self, de_noise):
+        """
+        数据解压缩：
+        残差（分组卷积） ----> 残差（深度可分离卷积）-----> 残差（深度可分离卷积） -----> 全连接恢复
+        :param de_noise: [batch_size, 32*32]
+        :return: [batch_size, 32*32]
+        """
+        # 深度卷积
+        out = res_unit(self.deep_conv, de_noise)  # [batch_size, 32, 32]
+        # 分组卷积
+        out = res_unit(self.group_conv1, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
+        # 深度可分卷积
+        out = res_unit(self.deep_separate, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
+        # 深度可分卷积
+        out = res_unit(self.deep_separate_2, out)  # [batch_size, 32, 32] ----->[batch_size, 32 ,32]
+        # 全连接
+        output = out.view(-1, self.data_length)  # [batch_size, 32, 32] -----> [batch_size, 32*32]
+        return output
+
+
+class Noise(nn.Module):
+    """
+    处理噪声：
+    1.制造一个高斯白噪声，与encoder_output相加,作为输入Decoder的输入：through_channel
+    2.through_channel经过网络，将噪声弱化
+    """
+    data_length = config.data_length
+    channel_num = config.channel_num
+    conv_group = config.conv_group
+    channel_multiple = config.channel_multiple
+
+    def __init__(self, snr, ratio):
+        super(Noise, self).__init__()
+        self.snr = snr
+        self.ratio = ratio
+        self.sub_fc = nn.Sequential(
+                                    nn.BatchNorm1d(int(self.data_length / self.ratio)),
+                                    nn.Linear(int(self.data_length / self.ratio), self.data_length),
+                                    nn.ELU()
+                                )
+
+    def forward(self, encoder_output):
+        """
+        加入噪声 -----> 标准化 -----> 全连接层
+        :param encoder_output: [batch_size, 32*32/ratio]
+        :return: [batch_size, 32, 32]
+        """
+
+        # 经过信道，加入噪声
+        if self.snr is not None:
+            through_channel = self.wgn(encoder_output)
+        else:
+            through_channel = encoder_output
+        # 标准化
+        out = normalize(through_channel)  # [batch_size, 32*32]
+        # 全连接
+        out = self.sub_fc(out)  # [batch_size, 32*32]
+        out = out.view(-1, self.channel_num, self.channel_num)  # [batch_size, 32, 32]
+        return out
+
+    def wgn(self, x):
+        """
+        对信号加入高斯白噪声,
+        噪音强度为：10 ** (snr / 10)，其中snr为对应的信噪比
+        注：信号的幅度的平方==信号的功率，因此要开平方根
+        :param x: 信号
+        :return:
+        """
+        x_power = (torch.sum(x ** 2) / x.numel())  # 信号的功率
+        noise_power = (x_power / torch.tensor(10 ** (self.snr / 10)))  # 噪声的功率
+        gaussian = torch.normal(0, torch.sqrt(noise_power).item(), (x.size()[0], x.size()[1]))  # 产生对应信噪比的高斯白噪声
+        return x + gaussian.to(config.device)
+
+
+if __name__ == '__main__':
+    model = Seq2Seq(5, 2).to(config.device)
+    summary(model, (1024,))
+    for name, param in model.named_parameters():
+        print(name, param.size())
