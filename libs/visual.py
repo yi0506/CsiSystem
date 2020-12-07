@@ -269,8 +269,8 @@ class Plot(object):
         y = list()
         y_old = list()
         for snr in self.snr_list:
-            if best_model:
-                model_snr = snr if snr <= 0 else None  # 信噪比小于0dB的用各自模型，大于0dB的用None模型
+            if best_model is True:
+                model_snr = snr  # 使用各自信噪比下的模型
             y.append(data["seq2seq"]["{}dB".format(model_snr)][str(ratio)]["{}dB".format(snr)][criteria])
             y_old.append(data["old_csi"][str(ratio)]["{}dB".format(snr)][criteria])
         return y, y_old
