@@ -9,6 +9,7 @@ is_train = True  # 是否使用训练集，data: [batch_size, 32*32]
 velocity = 50  # 不同速度下的数据集，单位km/h，[10km/h 50km/h 100km/h 150km/h 200km/h 300km/h]
 velocity_list = [50, 100, 150, 200, 300]  # 速度集合
 ratio_list = [2, 4, 8, 16, 32]  # 压缩率列表
+y_ticks_similarity = [0, 0.2, 0.4, 0.6, 0.8, 1.0]  # 画图时，相似度的y轴
 
 
 ################ model\dataset #################

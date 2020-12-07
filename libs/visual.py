@@ -124,6 +124,7 @@ class Plot(object):
     ratio_list = config.ratio_list
     snr_list = config.SNRs
     line_style = ["solid", "dashed", "dashdot", "dotted"]
+    y_ticks_similarity = config.y_ticks_similarity
 
     def __init__(self, data=None):
         """
@@ -171,7 +172,8 @@ class Plot(object):
             "title": r"$\mathrm{{SNR/{}\/\/{}km/h}}$".format(img_criteria, velocity),
             "loc": loc,
             "use_gird": False,
-            "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.svg".format(velocity, criteria, model_snr) if not best_model else "./images/{}km/{}-net-{}—best.svg".format(velocity, velocity, criteria)
+            "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.svg".format(velocity, criteria, model_snr) if not best_model else "./images/{}km/{}-net-{}—best.svg".format(velocity, velocity, criteria),
+            "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
 
@@ -202,7 +204,8 @@ class Plot(object):
             "title": r"$\mathrm{{1/{}\/\/SNR/{}\/\/{}km/h}}$".format(ratio, img_criteria, velocity),
             "loc": loc,
             "use_gird": False,
-            "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.svg".format(velocity, criteria, ratio, model_snr)
+            "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.svg".format(velocity, criteria, ratio, model_snr),
+            "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
 
@@ -241,7 +244,8 @@ class Plot(object):
                 "title": r"$\mathrm{{SNR/{}\/\/{}km/h}}$".format(img_criteria, velocity),
                 "loc": loc,
                 "use_gird": False,
-                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.svg".format(velocity, criteria, ratio_list, used_model)
+                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.svg".format(velocity, criteria, ratio_list, used_model),
+                "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
 
@@ -275,8 +279,7 @@ class Plot(object):
             y_old.append(data["old_csi"][str(ratio)]["{}dB".format(snr)][criteria])
         return y, y_old
 
-    @staticmethod
-    def plt_description(fig, **kwargs):
+    def plt_description(self, fig, **kwargs):
         """绘制图片描述信息"""
         img_name = kwargs.get("img_name")
         use_grid = kwargs.get("use_grid", False)
@@ -284,9 +287,14 @@ class Plot(object):
         xlable = kwargs.get("xlable")
         ylable = kwargs.get("ylable")
         legend_loc = kwargs.get("loc")
+        criteria = kwargs.get('criteria')
         fig.xlabel(xlable, fontsize=12)
         fig.ylabel(ylable, fontsize=12)
         fig.title(title, fontsize=15)
+        if criteria == r"\rho":
+            fig.yticks(ticks=self.y_ticks_similarity, fontproperties="Times New Roman")
+        else:
+            fig.yticks(fontproperties="Times New Roman")
         fig.xticks(fontproperties="Times New Roman")
         fig.yticks(fontproperties="Times New Roman")
         fig.legend(loc=legend_loc, prop={'family': "Times New Roman", "size": 12})
