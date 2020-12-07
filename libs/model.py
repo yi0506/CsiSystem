@@ -71,10 +71,6 @@ class Encoder(nn.Module):
                                 nn.Linear(self.data_length, int(self.data_length / self.ratio)),
                                 nn.ELU()
                         )
-        self.fc = nn.Sequential(
-                        nn.Linear(self.data_length, self.data_length),
-                        nn.ELU()
-                    )
 
     def forward(self, input_):
         """
@@ -84,8 +80,6 @@ class Encoder(nn.Module):
         """
         # 标准化
         out = normalize(input_)  # [batch_size, 32*32]
-        # 全连接
-        out = self.fc(out)  # [batch_size, 32*32]
         out = out.view(-1, self.channel_num, self.channel_num)  # [batch_size, 32, 32]
         # 分组卷积
         out = res_unit(self.group_conv1, out)  # [batch_size, 32, 32]
