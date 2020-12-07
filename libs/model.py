@@ -234,5 +234,5 @@ class Noise(nn.Module):
 if __name__ == '__main__':
     model = Seq2Seq(5, 2).to(config.device)
     summary(model, (1024,))
-    for name, param in model.named_parameters():
-        print(name, param.size())
+    # for name, param in model.named_parameters():
+    #     print(name, param.size())
