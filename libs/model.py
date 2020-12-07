@@ -71,6 +71,10 @@ class Encoder(nn.Module):
                                 nn.Linear(self.data_length, int(self.data_length / self.ratio)),
                                 nn.ELU()
                         )
+        self.fc = nn.Sequential(
+                        nn.Linear(self.data_length, self.data_length),
+                        nn.ELU()
+                    )
 
     def forward(self, input_):
         """
@@ -80,6 +84,8 @@ class Encoder(nn.Module):
         """
         # 标准化
         out = normalize(input_)  # [batch_size, 32*32]
+        # 全连接
+        out = self.fc(out)  # [batch_size, 32*32]
         out = out.view(-1, self.channel_num, self.channel_num)  # [batch_size, 32, 32]
         # 分组卷积
         out = res_unit(self.group_conv1, out)  # [batch_size, 32, 32]
@@ -144,6 +150,12 @@ class Decoder(nn.Module):
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
                                     nn.ELU()
                                 )
+        self.fc_restore = nn.Sequential(
+                                    nn.BatchNorm1d(self.data_length),
+                                    nn.Linear(self.data_length, self.data_length),
+                                    nn.ELU(),
+                                    nn.Linear(self.data_length, self.data_length)
+                                )
 
     def forward(self, de_noise):
         """
@@ -160,8 +172,9 @@ class Decoder(nn.Module):
         out = res_unit(self.deep_separate, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
         # 深度可分卷积
         out = res_unit(self.deep_separate_2, out)  # [batch_size, 32, 32] ----->[batch_size, 32 ,32]
-        # reshape
-        output = out.view(-1, self.data_length)  # [batch_size, 32, 32] -----> [batch_size, 32*32]
+        # 全连接
+        out = out.view(-1, self.data_length)  # [batch_size, 32, 32] -----> [batch_size, 32*32]
+        output = self.fc_restore(out)  # [batch_size, 32*32] -----> [batch_size, 32*32]
         return output
 
 
@@ -192,7 +205,6 @@ class Noise(nn.Module):
         :param encoder_output: [batch_size, 32*32/ratio]
         :return: [batch_size, 32, 32]
         """
-
         # 经过信道，加入噪声
         if self.snr is not None:
             through_channel = self.wgn(encoder_output)
