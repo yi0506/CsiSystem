@@ -14,12 +14,12 @@ from libs import config
 from libs.csi_dataset import data_load
 
 
-class Seq2Seq(nn.Module):
+class CsiNet(nn.Module):
     """压缩端与解压缩端合并封装"""
 
     def __init__(self, **kwargs):
         """初始化模型与必要参数"""
-        super(Seq2Seq, self).__init__()
+        super(CsiNet, self).__init__()
         self.ratio = kwargs.get("ratio", config.old_csi_net_compress_ratio)  # 压缩率
         self.encoder = Encoder(self.ratio)
         self.decoder = Decoder(self.ratio)
@@ -28,7 +28,7 @@ class Seq2Seq(nn.Module):
 
     def forward(self, input_):
         """前向传播过程"""
-        if not self.add_noise:
+        if self.add_noise is False:
             encoder_output = self.encoder(input_)
             decoder_output = self.decoder(encoder_output)
             return decoder_output
@@ -176,7 +176,7 @@ class Trainer(object):
         self.model_path = kwargs.get("model_path", "./model/{}km/ratio_{}/old_csi/old_csi_{}.pt".format(self.velocity, self.ratio, self.ratio))
         self.epoch = epoch
         self.data_loader = data_load(True, self.velocity)
-        self.model = Seq2Seq(ratio=self.ratio).to(self.device).train()
+        self.model = CsiNet(ratio=self.ratio).to(self.device).train()
         self.optimizer = Adam(self.model.parameters())
 
     def run(self):
@@ -227,7 +227,7 @@ class Tester(object):
         self.snr = kwargs.get("snr", None)  # 信噪比
         self.velocity = kwargs.get("velocity", config.velocity)  # 速度
         self.model_path = kwargs.get("model_path", "./model/{}km/ratio_{}/old_csi/old_csi_{}.pt".format(self.velocity, self.ratio, self.ratio))
-        self.model = Seq2Seq(ratio=self.ratio, add_noise=add_noise, snr=self.snr).to(self.device).eval()
+        self.model = CsiNet(ratio=self.ratio, add_noise=add_noise, snr=self.snr).to(self.device).eval()
         self.model.load_state_dict(torch.load(self.model_path))
         self.data_loader = tqdm(data_load(False, self.velocity))
 
@@ -260,5 +260,5 @@ class Tester(object):
 
 
 if __name__ == '__main__':
-    model = Seq2Seq().to(config.device)
+    model = CsiNet().to(config.device)
     summary(model, (1024,))
