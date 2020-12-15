@@ -36,7 +36,6 @@ def dct_process(X, snr=None, ratio=None):
     :return:误差loss、相似度similarity
     """
     x_row, x_col = X.shape
-
     # 矩阵X行列不相等时，进行补齐
     if x_col != x_row:
         dim = max(x_row, x_col)
@@ -52,7 +51,6 @@ def dct_process(X, snr=None, ratio=None):
     else:
         dim = x_row
         A = np.zeros((dim, dim))  # A:观测矩阵
-
     # 确定观测矩阵系数
     for i in range(dim):
         for j in range(dim):
@@ -61,24 +59,21 @@ def dct_process(X, snr=None, ratio=None):
             else:
                 beta = np.sqrt(2/dim)
             A[i][j] = beta*np.cos(np.pi*(j+0.5)*i/dim)
-
     # 数据压缩
     if ratio:
         assert ratio < max(x_col, x_row), "ratio必须小于矩阵X行与列的最大维度，否则压缩无效"
-        A = A[:ratio, :]
-
+        temp_A = np.abs(A)
+        temp_max = np.sort(temp_A, axis=0)[dim - ratio]
+        A[temp_A < temp_max] = 0
     # DCT变换
     A_T = A.T  # A的转置矩阵
     X_transposed = np.matmul(np.matmul(A, X), A_T)
-
     # 经过信道
     if snr:
         nVar = 10 ** (0.1 * (-snr))  # 噪声方差
         X_transposed = X_transposed + np.random.normal(0, nVar, (X_transposed.shape[0], X_transposed.shape[1]))
-
     # DCT逆变换
     X_new = np.matmul(np.matmul(A_T, X_transposed), A)
-
     # 去掉补齐的部分
     if x_col != x_row:
         if x_col > x_row:
@@ -87,7 +82,6 @@ def dct_process(X, snr=None, ratio=None):
         else:
             X_new = X_new[:, :x_col]
             X = X[:, :x_col]
-
     # 计算准确率
     X_new = torch.tensor(X_new).flatten()
     X = torch.tensor(X).flatten()
@@ -116,23 +110,12 @@ def calculate_correction(A):
 
 
 if __name__ == '__main__':
-    loss, simi, x, x_new, A, x_trans = dct_process(np.random.randn(3, 3))
-    # print(loss)
-    # print(simi)
-    # print(x)
-    # print(x_new)
+    loss, simi, x, x_new, A, x_trans = dct_process(np.random.randn(1024, 1024), ratio=16)
+    print(loss)
+    print(simi)
+    print(x)
+    print(x_new)
     # print(_)
     # print(A)
     # calculate_correction(A)
-    np.random.seed(1)
-    x = np.random.randn(10, 1)
-    # print(x)
-    x_trans = dct_1d(x)
-    print(np.sort(x_trans, axis=0))
-    k = 4
-    print(np.sort(x_trans, axis=0)[10-k])
-    temp = np.sort(x_trans, axis=0)[10 - k]
-    x_trans[x_trans < temp] = 0
-    print(x_trans)
-    np.where
-
+    
