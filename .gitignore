@@ -4,11 +4,6 @@ __pycache__/
 *$py.class
 
 .idea/
-images/50km
-images/100km
-images/150km
-images/200km
-images/300km
 
 # C extensions
 *.so
