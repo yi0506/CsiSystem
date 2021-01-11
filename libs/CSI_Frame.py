@@ -48,11 +48,11 @@ def v_loop(func):
     return call_func
 
 
-class MyCsi(object):
+class BaseCSIFrame(object):
     """
-    评估与训练模型的封装，
+    定义CSI反馈系统的必要方法：模型训练、测试、传统算法测试、测试结果可视化
     所有代码中（注释、变量名、文件名）提到的old_csi、old均指最早的csi_net网络，csi_net均指model.py中的神经网络模型
-    类属性参考config.py
+    必要参数可参考config.py
     """
     __instance = None  # 是否已创建实例对象
     __initialized = False  # 是否已初始化
@@ -91,47 +91,6 @@ class MyCsi(object):
                 print('变量类型有问题')
                 return
 
-    def model_joint_train(self, epoch=300, model_list=config.train_model_SNRs, multi=True) -> None:
-        """在不同压缩率、使用多进程，训练不同信噪比的模型"，seq2seq与noise合并在一起，模型会保存成一个整体"""
-        self.__ratio_loop(concurrent_train, epoch=epoch, model_list=model_list, multi=multi)
-
-    def model_joint_test(self, model_list=config.train_model_SNRs, multi=True) -> None:
-        """在不同压缩率、不同信噪比下，使用多进程，测试不同信噪比模型的效果，测试的是合并在一起的整体模型"""
-        self.__ratio_loop(concurrent_test, multi=multi, model_list=model_list)
-
-    def model_train(self, epoch=300, snr=None) -> None:
-        """snr: 训练某种信噪比下的模型， 在不同压缩率下，进行训练，训练整个神经网络，模型会保存成一个整体"""
-        self.__ratio_loop(train_model_merged, epoch=epoch, snr=snr)
-
-    def model_test(self, snr=None) -> None:
-        """snr：选择某种信噪比模型，在不同压缩率下，在不同信噪比下，测试整体模型的效果，即在哪种信噪比下训练的，就测试哪种信噪比"""
-        self.__ratio_loop(test, snr_model=snr)
-
-    def model_train_separated(self, snr: int or None = None, epoch=200) -> None:
-        """snr：指定某种信噪比，在不同压缩率下，训练指定的模型，seq2seq与noise合并在一起训练，
-        但encoder ,noise, decoder三个模块分开保存成三个模型，snr为指定的信噪比"""
-        self.__ratio_loop(train_model_separated, epoch=epoch, snr=snr)
-
-    def model_test_separated(self, snr: int or None = None) -> None:
-        """在不同压缩率下，测试分开的三个模型（encoder + decoder + noise）在不同信噪比下的效果，
-        snr表示选择哪一个信噪比下的模型，且要求相应的信噪比模型必须存在，否则找不到该模型"""
-        self.__ratio_loop(test_model_separated, snr=snr)
-
-    def cs_test(self) -> None:
-        """在不同信噪比下对所有CS算法的评估，并将结果保存到文件中"""
-        self.__ratio_loop(self.cs_test_done)
-
-    def old_csi_train(self, epoch: int = 1000) -> None:
-        """old_csi_net在不同压缩率下模型的训练"""
-        self.__ratio_loop(Trainer, epoch=epoch)
-
-    def old_csi_test(self, add_noise: bool = True) -> None:
-        """
-        old_csi_net模型在不同压缩率、不同信噪比下测试，并将测试结果保存
-        :param add_noise: 是否加入噪声
-        """
-        self.__ratio_loop(self.old_csi_test_done, add_noise=add_noise)
-
     @v_loop
     def visual_display(self,
                        velocity,
@@ -156,6 +115,80 @@ class MyCsi(object):
         main_plot(train_models=train_models, velocity=velocity, cs_multi_ratio_list=cs_multi_ratio_list,
                   ratio_list=self.ratio_list, cs_multi_ratio_model=cs_multi_ratio_model)
         main_form(velocity=velocity, ratio_list=self.ratio_list, model=form_model)
+
+    def model_joint_train(self, epoch=300, model_list=config.train_model_SNRs, multi=True) -> None:
+        """在不同压缩率、使用多进程，训练不同信噪比的模型"，seq2seq与noise合并在一起，模型会保存成一个整体"""
+        pass
+
+    def model_joint_test(self, model_list=config.train_model_SNRs, multi=True) -> None:
+        """在不同压缩率、不同信噪比下，使用多进程，测试不同信噪比模型的效果，测试的是合并在一起的整体模型"""
+        pass
+
+    def model_train(self, epoch=300, snr=None) -> None:
+        """snr: 训练某种信噪比下的模型， 在不同压缩率下，进行训练，训练整个神经网络，模型会保存成一个整体"""
+        pass
+
+    def model_test(self, snr=None) -> None:
+        """snr：选择某种信噪比模型，在不同压缩率下，在不同信噪比下，测试整体模型的效果，即在哪种信噪比下训练的，就测试哪种信噪比"""
+        pass
+
+    def model_train_separated(self, snr: int or None = None, epoch=200) -> None:
+        """snr：指定某种信噪比，在不同压缩率下，训练指定的模型，seq2seq与noise合并在一起训练，
+        但encoder ,noise, decoder三个模块分开保存成三个模型，snr为指定的信噪比"""
+        pass
+
+    def model_test_separated(self, snr: int or None = None) -> None:
+        """在不同压缩率下，测试分开的三个模型（encoder + decoder + noise）在不同信噪比下的效果，
+        snr表示选择哪一个信噪比下的模型，且要求相应的信噪比模型必须存在，否则找不到该模型"""
+        pass
+
+    def cs_test(self) -> None:
+        """在不同信噪比下对所有CS算法的评估，并将结果保存到文件中"""
+        pass
+
+    def old_csi_train(self, epoch: int = 1000) -> None:
+        """old_csi_net在不同压缩率下模型的训练"""
+        pass
+
+    def old_csi_test(self, add_noise: bool = True) -> None:
+        """
+        old_csi_net模型在不同压缩率、不同信噪比下测试，并将测试结果保存
+        :param add_noise: 是否加入噪声
+        """
+        pass
+
+
+class MyCsi(BaseCSIFrame):
+    """
+    完成CSI反馈系统的必要方法：模型训练、测试、传统算法测试、测试结果可视化
+    """
+
+    def model_joint_train(self, epoch=300, model_list=config.train_model_SNRs, multi=True):
+        self.__ratio_loop(concurrent_train, epoch=epoch, model_list=model_list, multi=multi)
+
+    def model_joint_test(self, model_list=config.train_model_SNRs, multi=True):
+        self.__ratio_loop(concurrent_test, multi=multi, model_list=model_list)
+
+    def model_train(self, epoch=300, snr=None) -> None:
+        self.__ratio_loop(train_model_merged, epoch=epoch, snr=snr)
+
+    def model_test(self, snr=None) -> None:
+        self.__ratio_loop(test, snr_model=snr)
+
+    def model_train_separated(self, snr=None, epoch=200):
+        self.__ratio_loop(train_model_separated, epoch=epoch, snr=snr)
+
+    def model_test_separated(self, snr=None):
+        self.__ratio_loop(test_model_separated, snr=snr)
+
+    def cs_test(self) -> None:
+        self.__ratio_loop(self.cs_test_done)
+
+    def old_csi_train(self, epoch=1000):
+        self.__ratio_loop(Trainer, epoch=epoch)
+
+    def old_csi_test(self, add_noise=True):
+        self.__ratio_loop(self.old_csi_test_done, add_noise=add_noise)
 
     def old_csi_test_done(self, add_noise, velocity, ratio):
         """odl_csi执行测试"""
