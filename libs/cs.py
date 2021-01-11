@@ -25,8 +25,10 @@ def route(method):
     return decorator
 
 
-class CS(object):
+class BaseCS(object):
     """
+    CS基类
+
     对数据进行压缩感知重构，并评估重构结果，每次只能对一条数据进行测试，
     同时，每次测试只能在一种信噪比下使用一种CS的组合方法，进行测试
 
@@ -72,6 +74,9 @@ class CS(object):
             setattr(self, key, value)
         self.sparse_matrix = load_sparse_base(self.sparse_method.upper())  # 加载稀疏基
 
+    def __call__(self, *args, **kwargs):
+        return self.run()
+
     def run(self):
         """主函数：对数据进行压缩、重构、计算相似度与损失，然后返回测试结果"""
         similarity_list = list()
@@ -80,27 +85,21 @@ class CS(object):
         bar = tqdm.tqdm(dataset(self.velocity))
         for data in bar:
             data = data.reshape(-1, 1)
-
             # 数据压缩
             start_time = time.time()  # 开始时间
             y, Beta, k = self.__compress(data)
-
             # 经过信道加噪
             y_add_noise = self.__channel(y)
-
             # 重构信号
             restore_data = self.__restore(self.restore_method, y_add_noise, Beta, k)
             stop_time = time.time()  # 结束时间
-
             # 计算相似度、损失、消耗的时间
             similarity, loss = self.__evaluate(data, restore_data)
             similarity_list.append(similarity.item())
             loss_list.append(loss.item())
             time_list.append(stop_time-start_time)
-
             # 显示进度
-            bar.set_description("ratio:{}\t{}:{}\tnoise_SNR:{}dB\tloss:{:}\tsimilarity:{:.3f}"
-                                .format(self.Fi_ratio, self.sparse_method, self.restore_method, self.snr, loss.item(), similarity.item()))
+            bar.set_description("ratio:{}\t{}:{}\tnoise_SNR:{}dB\tloss:{:}\tsimilarity:{:.3f}".format(self.Fi_ratio, self.sparse_method, self.restore_method, self.snr, loss.item(), similarity.item()))
         # 将测试结果返回
         return self.__save_result(loss_list, similarity_list, time_list)
 
@@ -184,13 +183,62 @@ class CS(object):
         # 保存结果到字典中并返回
         return {"snr": self.snr, "NMSE": avg_loss, "相似度": avg_similarity, "time": avg_time}
 
+
+class CS(BaseCS):
+    """
+    CS类
+
+    自定义所需的CS算法
+
+    """
+    def __FFT(self, func, param):
+        """
+        基于FFT稀疏基的CS重构算法
+        func: 需要执行的具体CS算法
+        param: 执行func所指向的算法所需的必要参数
+        """
+        # 获取CS恢复计算必要参数
+        Beta = param.get('Beta')
+        real_param = param['real_param']
+        imag_param = param['imag_param']
+        Beta_real = np.real(Beta)
+        Beta_imag = np.imag(Beta)
+        real_param['Beta_real'] = Beta_real
+        real_param['Beta_imag'] = Beta_imag
+        # 进行CS恢复计算
+        restore_s_real = func(**real_param)  # s实部
+        restore_s_imag = func(**imag_param)  # s虚部
+        # 实虚部合并
+        restore_s = restore_s_real + restore_s_imag * 1j
+        # IFFT变换，恢复data
+        restore_data = np.matmul(self.sparse_matrix.T, restore_s)
+        # 取实部，作为恢复的信号
+        return np.real(restore_data)
+
+    def __DCT(self, func, param):
+        """
+        基于DCT稀疏基的CS重构算法
+        func: 需要执行的具体CS算法
+        param: 执行func所指向的算法所需的必要参数
+        """
+        restore_s = func(**param)
+        restore_data = np.matmul(self.sparse_matrix.T, restore_s)
+        return restore_data
+
     @route("dct_omp")
     def __DCT_OMP(self, y_add_noise, Beta, k, *args):
         """
         当稀疏基是dct变换基时，将恢复的稀疏系数s计算idct，恢复数据data，*args仅用来接收多余参数，防止程序崩溃，无其他用途
         """
-        restore_s = self.__OMP(y_add_noise, Beta, k)
-        restore_data = np.matmul(self.sparse_matrix.T, restore_s)
+        # 构造参数上下文
+        param = {
+            'y_add_noise': y_add_noise,
+            'Beta': Beta,
+            'k': k
+        }
+        # 执行DCT_OMP恢复算法
+        restore_data = self.__DCT(func=self.__OMP, param=param)
+        # 返回恢复后的数据
         return restore_data
 
     @route("fft_omp")
@@ -199,47 +247,72 @@ class CS(object):
         当稀疏基是fft变换基时，实部虚部分开处理，进行重构,重构稀疏系数s的实部与虚部，
         重构出来的两部分合并成复数，计算ifft，恢复数据data，*args仅用来接收多余参数，防止程序崩溃，无其他用途
         """
-        Beta_real = np.real(Beta)
-        Beta_imag = np.imag(Beta)
-        restore_s_real = self.__OMP(y_add_noise, Beta_real, k)  # s实部
-        restore_s_imag = self.__OMP(y_add_noise, Beta_imag, k)  # s虚部
-        restore_s = restore_s_real + restore_s_imag * 1j
-        restore_data = np.matmul(self.sparse_matrix.T, restore_s)  # IFFT变换，恢复data
-        return np.real(restore_data)  # 取实部，作为恢复的信号
+        # 构造参数上下文
+        param = {
+            'y_add_noise': y_add_noise,
+            'Beta': Beta,
+            'k': k
+        }
+        # 执行FFT_OMP恢复算法
+        restore_data = self.__FFT(func=self.__OMP, param=param)
+        # 返回恢复后的数据
+        return restore_data
 
     @route("dct_samp")
     def __DCT_SAMP(self, y_add_noise, Beta, *args):
         """基于DCT稀疏基的SAMP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
-        s = self.__SAMP(y_add_noise, Beta, self.t)
-        return np.matmul(self.sparse_matrix.T, s)
+        # 构造参数上下文
+        param = {
+            'y_add_noise': y_add_noise,
+            'Beta': Beta,
+            't': self.t
+        }
+        # 执行DCT_SAMP恢复算法
+        restore_data = self.__DCT(func=self.__SAMP, param=param)
+        # 返回恢复后的数据
+        return restore_data
 
     @route("fft_samp")
     def __FFT_SAMP(self, y_add_noise, Beta, *args):
         """基于FFT稀疏基的SAMP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
-        Beta_real = np.real(Beta)
-        Beta_imag = np.imag(Beta)
-        restore_s_real = self.__SAMP(y_add_noise, Beta_real, self.t)  # s实部
-        restore_s_imag = self.__SAMP(y_add_noise, Beta_imag, self.t)  # s虚部
-        restore_s = restore_s_real + restore_s_imag * 1j
-        restore_data = np.matmul(self.sparse_matrix.T, restore_s)  # IFFT变换，恢复data
-        return np.real(restore_data)  # 取实部，作为恢复的信号
+        # 构造参数上下文
+        param = {
+            'y_add_noise': y_add_noise,
+            'Beta': Beta,
+            't': self.t
+        }
+        # 执行FFT_SAMP恢复算法
+        restore_data = self.__FFT(func=self.__SAMP, param=param)
+        # 返回恢复后的数据
+        return restore_data
 
     @route("dct_sp")
     def __DCT_SP(self, y_add_noise, Beta, k, *args):
         """基于DCT稀疏基的SP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
-        s = self.__SP(y_add_noise, Beta, k)
-        return np.matmul(self.sparse_matrix.T, s)
+        # 构造参数上下文
+        param = {
+            'y_add_noise': y_add_noise,
+            'Beta': Beta,
+            'k': k
+        }
+        # 执行DCT_SAMP恢复算法
+        restore_data = self.__DCT(func=self.__SP, param=param)
+        # 返回恢复后的数据
+        return restore_data
 
     @route("fft_sp")
     def __FFT_SP(self, y_add_noise, Beta, k, *args):
         """基于FFT稀疏基的SP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
-        Beta_real = np.real(Beta)
-        Beta_imag = np.imag(Beta)
-        restore_s_real = self.__SP(y_add_noise, Beta_real, k)  # s实部
-        restore_s_imag = self.__SP(y_add_noise, Beta_imag, k)  # s虚部
-        restore_s = restore_s_real + restore_s_imag * 1j
-        restore_data = np.matmul(self.sparse_matrix.T, restore_s)  # IFFT变换，恢复data
-        return np.real(restore_data)  # 取实部，作为恢复的信号
+        # 构造参数上下文
+        param = {
+            'y_add_noise': y_add_noise,
+            'Beta': Beta,
+            'k': k
+        }
+        # 执行FFT_SAMP恢复算法
+        restore_data = self.__FFT(func=self.__SP, param=param)
+        # 返回恢复后的数据
+        return restore_data
 
     @route("idct")
     def __IDCT(self, y_add_noise, *args):
@@ -403,9 +476,6 @@ class CS(object):
         # 得到s的稀疏系数
         s[Beta_idx.flatten()] = s_ls
         return s
-
-    def __call__(self, *args, **kwargs):
-        return self.run()
 
 
 def dataset(velocity):
