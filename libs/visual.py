@@ -11,6 +11,15 @@ from libs.train import rec_mkdir
 from libs import config
 
 
+PREFERENCE = {
+        "font.family": 'serif',
+        "mathtext.fontset": 'stix',
+        "font.serif": ['SimSun'],
+        "axes.unicode_minus": False
+}
+rcParams.update(PREFERENCE)
+
+
 class LoadTestData(object):
     """加载测试数据"""
 
@@ -107,15 +116,6 @@ class LoadTestData(object):
             y_one_ratio["old_csi"] = old_csi_data
             y_dict[str(Fi_ratio)] = y_one_ratio
         return y_dict
-
-
-PREFERENCE = {
-        "font.family": 'serif',
-        "mathtext.fontset": 'stix',
-        "font.serif": ['SimSun'],
-        "axes.unicode_minus": False
-}
-rcParams.update(PREFERENCE)
 
 
 class Plot(object):
