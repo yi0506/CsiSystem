@@ -237,7 +237,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行DCT_OMP恢复算法
-        restore_data = self.__DCT(func=self.__OMP, param=param)
+        restore_data = self.__DCT(func=OMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -254,7 +254,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行FFT_OMP恢复算法
-        restore_data = self.__FFT(func=self.__OMP, param=param)
+        restore_data = self.__FFT(func=OMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -268,7 +268,7 @@ class CS(BaseCS):
             't': self.t
         }
         # 执行DCT_SAMP恢复算法
-        restore_data = self.__DCT(func=self.__SAMP, param=param)
+        restore_data = self.__DCT(func=SAMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -282,7 +282,7 @@ class CS(BaseCS):
             't': self.t
         }
         # 执行FFT_SAMP恢复算法
-        restore_data = self.__FFT(func=self.__SAMP, param=param)
+        restore_data = self.__FFT(func=SAMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -296,7 +296,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行DCT_SAMP恢复算法
-        restore_data = self.__DCT(func=self.__SP, param=param)
+        restore_data = self.__DCT(func=SP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -310,7 +310,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行FFT_SAMP恢复算法
-        restore_data = self.__FFT(func=self.__SP, param=param)
+        restore_data = self.__FFT(func=SP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -327,155 +327,158 @@ class CS(BaseCS):
         data = np.matmul(S_conj, y_add_noise) / x_row
         return np.real(data)  # 取实部，作为恢复的信号
 
-    @staticmethod
-    def __OMP(y, Beta, k):
-        """
-        :param y: 观测向量 [m, 1]
-        :param Beta: 传感矩阵 [m, n], m << n
-        :param k: 稀疏度
-        :return: 重构数据 restore_data[n, 1]
 
-        """
-        Beta_row, Beta_col = Beta.shape
-        iter_num = k  # 确定迭代次数
-        s = np.zeros((Beta_col, 1))  # 数据的稀疏系数
-        Beta_new = np.zeros((Beta_row, iter_num))  # 用来存储迭代过程中Beta被选择的列
-        Beta_idx = np.zeros((iter_num, 1)).astype(np.int32)  # 存储Beta被选择的列的索引
-        residual_error = y  # 初始化残差
+def OMP(y, Beta, k):
+    """
+    OMP算法
+    :param y: 观测向量 [m, 1]
+    :param Beta: 传感矩阵 [m, n], m << n
+    :param k: 稀疏度
+    :return: 重构数据 restore_data[n, 1]
 
-        for i in range(iter_num):
-            # 传感矩阵与各列残差求内积
-            inner_product = np.matmul(Beta.T, residual_error)
+    """
+    Beta_row, Beta_col = Beta.shape
+    iter_num = k  # 确定迭代次数
+    s = np.zeros((Beta_col, 1))  # 数据的稀疏系数
+    Beta_new = np.zeros((Beta_row, iter_num))  # 用来存储迭代过程中Beta被选择的列
+    Beta_idx = np.zeros((iter_num, 1)).astype(np.int32)  # 存储Beta被选择的列的索引
+    residual_error = y  # 初始化残差
 
-            # 找到最大的内积绝对值相对应列的索引
-            idx = np.argmax(np.abs(inner_product))
+    for i in range(iter_num):
+        # 传感矩阵与各列残差求内积
+        inner_product = np.matmul(Beta.T, residual_error)
 
-            # 存储这一列与对应的索引
-            Beta_new[:, i] = Beta[:, idx]
-            Beta_idx[i] = idx
+        # 找到最大的内积绝对值相对应列的索引
+        idx = np.argmax(np.abs(inner_product))
 
-            # 清零Beta的这一列， 其实可以不用，因为它与残差正交
-            Beta[:, idx] = np.zeros((Beta_row,))
+        # 存储这一列与对应的索引
+        Beta_new[:, i] = Beta[:, idx]
+        Beta_idx[i] = idx
 
-            # 求s的最小二乘解,所求结果为s中不为0的位置处的值
-            s_ls = np.matmul(np.linalg.pinv(Beta_new[:, :i + 1]), y)
+        # 清零Beta的这一列， 其实可以不用，因为它与残差正交
+        Beta[:, idx] = np.zeros((Beta_row,))
 
-            # 更新残差
-            residual_error = y - np.matmul(Beta_new[:, :i + 1], s_ls)
+        # 求s的最小二乘解,所求结果为s中不为0的位置处的值
+        s_ls = np.matmul(np.linalg.pinv(Beta_new[:, :i + 1]), y)
 
-        # 得到data的稀疏系数表示s
-        s[Beta_idx.flatten()] = s_ls
-        return s
+        # 更新残差
+        residual_error = y - np.matmul(Beta_new[:, :i + 1], s_ls)
 
-    @staticmethod
-    def __SAMP(y, Beta, t):
-        """
-        :param y: 观测向量 [m, 1]
-        :param Beta: 传感矩阵 [m, n]
-        :param t: 步长
-        :return: 重构稀疏系数 s[n, 1]
-        """
-        Beta_row, Beta_col = Beta.shape
-        iter_num = Beta_row  # 确定迭代次数
-        s = np.zeros((Beta_col, 1))  # 存储恢复的稀疏系数
-        Beta_idx = np.array([]).astype(np.int)  # 存储Beta被选择的列的索引
-        res_error = y  # 初始化残差
-        L = t  # 初始化步长
+    # 得到data的稀疏系数表示s
+    s[Beta_idx.flatten()] = s_ls
+    return s
 
-        for i in range(iter_num):
-            inner_product = np.abs(np.matmul(Beta.T, res_error))  # 传感矩阵与各列残差求内积
-            inner_product = torch.tensor(inner_product)
-            _, idx = torch.topk(inner_product, k=L, dim=0)  # 降序排列，选出最大的L个
-            idx = idx.numpy()
 
-            # Ck这里的操作是将两个数组合并，去掉重复数据，并且升序排序，也就是支撑集
-            Ck = np.union1d(idx, Beta_idx).astype(np.int)
+def SAMP(y, Beta, t):
+    """
+    SAMP算法
+    :param y: 观测向量 [m, 1]
+    :param Beta: 传感矩阵 [m, n]
+    :param t: 步长
+    :return: 重构稀疏系数 s[n, 1]
+    """
+    Beta_row, Beta_col = Beta.shape
+    iter_num = Beta_row  # 确定迭代次数
+    s = np.zeros((Beta_col, 1))  # 存储恢复的稀疏系数
+    Beta_idx = np.array([]).astype(np.int)  # 存储Beta被选择的列的索引
+    res_error = y  # 初始化残差
+    L = t  # 初始化步长
 
-            # 防止步长过大，超过矩阵维度
-            if len(Ck) <= Beta_row:
-                Beta_t = Beta[:, Ck.flatten()]
-            else:
-                s_ls = 0
-                break
+    for i in range(iter_num):
+        inner_product = np.abs(np.matmul(Beta.T, res_error))  # 传感矩阵与各列残差求内积
+        inner_product = torch.tensor(inner_product)
+        _, idx = torch.topk(inner_product, k=L, dim=0)  # 降序排列，选出最大的L个
+        idx = idx.numpy()
 
-            # y = Beta_t * s，求s的最小二乘解(Least Square)
-            s_ls = np.matmul(np.linalg.pinv(Beta_t), y)
-            s_ls = torch.tensor(s_ls)
-            _, idx2 = torch.topk(s_ls, k=L, dim=0)  # 降序排列，选出最大的L个
-            F = Ck[idx2.flatten()]
+        # Ck这里的操作是将两个数组合并，去掉重复数据，并且升序排序，也就是支撑集
+        Ck = np.union1d(idx, Beta_idx).astype(np.int)
 
-            # 更新残差
-            Beta_Lt = Beta[:, F.flatten()]
-            s_ls = np.matmul(np.linalg.pinv(Beta_Lt), y)
-            res_new = y - np.matmul(Beta_Lt, s_ls)
+        # 防止步长过大，超过矩阵维度
+        if len(Ck) <= Beta_row:
+            Beta_t = Beta[:, Ck.flatten()]
+        else:
+            s_ls = 0
+            break
 
-            # 满足停止的阈值,停止迭代   残差的范数<1e-6
-            if np.linalg.norm(res_error, axis=0) < 1e-6:
-                Beta_idx = F
-                break
-                # 这里做了一个切换，意思是说，如果新的残差的范数比之前的范数大，说明重构不够精准，差距过大.
-            elif np.linalg.norm(res_error) >= np.linalg.norm(res_new):
-                L = L + t
-                if i + 1 == iter_num:  # 最后一次循环
-                    Beta_idx = F  # 更新Beta_idx与s_ls匹配，防止报错
-            else:
-                Beta_idx = F
-                res_error = res_new
+        # y = Beta_t * s，求s的最小二乘解(Least Square)
+        s_ls = np.matmul(np.linalg.pinv(Beta_t), y)
+        s_ls = torch.tensor(s_ls)
+        _, idx2 = torch.topk(s_ls, k=L, dim=0)  # 降序排列，选出最大的L个
+        F = Ck[idx2.flatten()]
 
-        # 得到s的稀疏系数
-        s[Beta_idx.flatten()] = s_ls
-        return s
+        # 更新残差
+        Beta_Lt = Beta[:, F.flatten()]
+        s_ls = np.matmul(np.linalg.pinv(Beta_Lt), y)
+        res_new = y - np.matmul(Beta_Lt, s_ls)
 
-    @staticmethod
-    def __SP(y, Beta, k):
-        """
-        :param y: 观测向量 [m, 1]
-        :param Beta: 传感矩阵 [m, n], m << n
-        :param k: 稀疏度
-        :return: 重构稀疏系数 s[n, 1]
-        """
-        Beta_row, Beta_col = Beta.shape
-        iter_num = k  # 确定迭代次数
-        s = np.zeros((Beta_col, 1))  # 数据的稀疏系数
-        Beta_idx = np.array([]).astype(np.int)  # 存储Beta被选择的列的索引
-        res_error = y  # 初始化残差
+        # 满足停止的阈值,停止迭代   残差的范数<1e-6
+        if np.linalg.norm(res_error, axis=0) < 1e-6:
+            Beta_idx = F
+            break
+            # 这里做了一个切换，意思是说，如果新的残差的范数比之前的范数大，说明重构不够精准，差距过大.
+        elif np.linalg.norm(res_error) >= np.linalg.norm(res_new):
+            L = L + t
+            if i + 1 == iter_num:  # 最后一次循环
+                Beta_idx = F  # 更新Beta_idx与s_ls匹配，防止报错
+        else:
+            Beta_idx = F
+            res_error = res_new
 
-        for i in range(iter_num):
-            inner_product = np.abs(np.matmul(Beta.T, res_error))  # 传感矩阵与各列残差求内积
-            inner_product = torch.tensor(inner_product)
-            _, idx = torch.topk(inner_product, k=k, dim=0)  # 降序排列，选出最大的k列
-            idx = idx.numpy()
+    # 得到s的稀疏系数
+    s[Beta_idx.flatten()] = s_ls
+    return s
 
-            # Is这里的操作是将两个数组取并集，去掉重复数据，并且升序排序，也就是支撑集
-            Is = np.union1d(idx, Beta_idx)
 
-            # 防止步长过大，超过矩阵维度,Beta矩阵行数要大于列数，此为最小二乘的基础(列线性无关)
-            if len(Is) <= Beta_row:
-                Beta_t = Beta[:, Is.flatten()]  # 将Beta的这几列组成矩阵Beta_t
-            else:  # Beta_t的列数大于行数，列必为线性相关的,Beta_t' * Beta_t将不可逆
-                break
+def SP(y, Beta, k):
+    """
+    SP算法
+    :param y: 观测向量 [m, 1]
+    :param Beta: 传感矩阵 [m, n], m << n
+    :param k: 稀疏度
+    :return: 重构稀疏系数 s[n, 1]
+    """
+    Beta_row, Beta_col = Beta.shape
+    iter_num = k  # 确定迭代次数
+    s = np.zeros((Beta_col, 1))  # 数据的稀疏系数
+    Beta_idx = np.array([]).astype(np.int)  # 存储Beta被选择的列的索引
+    res_error = y  # 初始化残差
 
-            # y = Beta_t * s，以下求s的最小二乘解(Least Square)
-            s_ls = np.matmul(np.linalg.pinv(Beta_t), y)
+    for i in range(iter_num):
+        inner_product = np.abs(np.matmul(Beta.T, res_error))  # 传感矩阵与各列残差求内积
+        inner_product = torch.tensor(inner_product)
+        _, idx = torch.topk(inner_product, k=k, dim=0)  # 降序排列，选出最大的k列
+        idx = idx.numpy()
 
-            # 修建
-            s_ls = torch.tensor(s_ls)
-            _, idx2 = torch.topk(torch.abs(s_ls), k=k, dim=0)  # 降序排列，选出最大的L个
+        # Is这里的操作是将两个数组取并集，去掉重复数据，并且升序排序，也就是支撑集
+        Is = np.union1d(idx, Beta_idx)
 
-            # 样本更新
-            Beta_idx = Is[idx2.flatten()]
-            s_ls = s_ls[idx2.flatten()].numpy()
+        # 防止步长过大，超过矩阵维度,Beta矩阵行数要大于列数，此为最小二乘的基础(列线性无关)
+        if len(Is) <= Beta_row:
+            Beta_t = Beta[:, Is.flatten()]  # 将Beta的这几列组成矩阵Beta_t
+        else:  # Beta_t的列数大于行数，列必为线性相关的,Beta_t' * Beta_t将不可逆
+            break
 
-            # Beta_t[:,idx2.flatten()]*s_ls是y在Beta_t[:,idx2.flatten()]列空间上的正交投影
-            res_error = y - np.matmul(Beta_t[:, idx2.flatten()], s_ls)
+        # y = Beta_t * s，以下求s的最小二乘解(Least Square)
+        s_ls = np.matmul(np.linalg.pinv(Beta_t), y)
 
-            # 满足停止的阈值,停止迭代   残差的范数<1e-6
-            if np.linalg.norm(res_error, axis=0) < 1e-6:
-                break
+        # 修建
+        s_ls = torch.tensor(s_ls)
+        _, idx2 = torch.topk(torch.abs(s_ls), k=k, dim=0)  # 降序排列，选出最大的L个
 
-        # 得到s的稀疏系数
-        s[Beta_idx.flatten()] = s_ls
-        return s
+        # 样本更新
+        Beta_idx = Is[idx2.flatten()]
+        s_ls = s_ls[idx2.flatten()].numpy()
+
+        # Beta_t[:,idx2.flatten()]*s_ls是y在Beta_t[:,idx2.flatten()]列空间上的正交投影
+        res_error = y - np.matmul(Beta_t[:, idx2.flatten()], s_ls)
+
+        # 满足停止的阈值,停止迭代   残差的范数<1e-6
+        if np.linalg.norm(res_error, axis=0) < 1e-6:
+            break
+
+    # 得到s的稀疏系数
+    s[Beta_idx.flatten()] = s_ls
+    return s
 
 
 def dataset(velocity):
