@@ -80,7 +80,7 @@ class BaseCSIFrame(object):
         self.__initialized = True  # 已执行初始化
 
     @v_loop
-    def __ratio_loop(self, func, *args, **kwargs):
+    def ratio_loop(self, func, *args, **kwargs):
         """对func传入所需要的压缩率ratio"""
         for ratio in self.ratio_list:
             if isinstance(func, types.FunctionType) or isinstance(func, types.MethodType):
@@ -164,31 +164,31 @@ class MyCsi(BaseCSIFrame):
     """
 
     def model_joint_train(self, epoch=300, model_list=config.train_model_SNRs, multi=True):
-        self.__ratio_loop(concurrent_train, epoch=epoch, model_list=model_list, multi=multi)
+        self.ratio_loop(concurrent_train, epoch=epoch, model_list=model_list, multi=multi)
 
     def model_joint_test(self, model_list=config.train_model_SNRs, multi=True):
-        self.__ratio_loop(concurrent_test, multi=multi, model_list=model_list)
+        self.ratio_loop(concurrent_test, multi=multi, model_list=model_list)
 
     def model_train(self, epoch=300, snr=None) -> None:
-        self.__ratio_loop(train_model_merged, epoch=epoch, snr=snr)
+        self.ratio_loop(train_model_merged, epoch=epoch, snr=snr)
 
     def model_test(self, snr=None) -> None:
-        self.__ratio_loop(test, snr_model=snr)
+        self.ratio_loop(test, snr_model=snr)
 
     def model_train_separated(self, snr=None, epoch=200):
-        self.__ratio_loop(train_model_separated, epoch=epoch, snr=snr)
+        self.ratio_loop(train_model_separated, epoch=epoch, snr=snr)
 
     def model_test_separated(self, snr=None):
-        self.__ratio_loop(test_model_separated, snr=snr)
+        self.ratio_loop(test_model_separated, snr=snr)
 
     def cs_test(self) -> None:
-        self.__ratio_loop(self.cs_test_done)
+        self.ratio_loop(self.cs_test_done)
 
     def old_csi_train(self, epoch=1000):
-        self.__ratio_loop(Trainer, epoch=epoch)
+        self.ratio_loop(Trainer, epoch=epoch)
 
     def old_csi_test(self, add_noise=True):
-        self.__ratio_loop(self.old_csi_test_done, add_noise=add_noise)
+        self.ratio_loop(self.old_csi_test_done, add_noise=add_noise)
 
     def old_csi_test_done(self, add_noise, velocity, ratio):
         """odl_csi执行测试"""
