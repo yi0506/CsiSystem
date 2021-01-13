@@ -71,12 +71,12 @@ class BaseCSIFrame(object):
         self.ratio_list = kwargs.get("ratio_list", config.ratio_list)  # csi压缩率列表
         self.v_list = kwargs.get("v_list", config.velocity_list)  # 测试速度列表
         assert isinstance(self.ratio_list, list) and isinstance(self.v_list, list) and isinstance(self.SNRs, list), "请输入一个列表"
-        self.__cs_data_length = config.cs_data_length  # data长度
-        self.__test_list = list()  # CS方法
+        self.cs_data_length = config.cs_data_length  # data长度
+        self.test_list = list()  # CS方法
         for method in config.method_list:
             ret = re.match(r"^([a-zA-Z]+):([a-zA-Z]+_?[a-zA-Z]+)$", method)
             if ret:
-                self.__test_list.append(ret)
+                self.test_list.append(ret)
         self.__initialized = True  # 已执行初始化
 
     @v_loop
@@ -213,7 +213,7 @@ class MyCsi(BaseCSIFrame):
 
     def cs_test_done(self, velocity, ratio):
         """cs执行测试"""
-        Fi_m = int(self.__cs_data_length / ratio)
+        Fi_m = int(self.cs_data_length / ratio)
         cs_dict = {
             "k": config.k,
             "t": config.t,
@@ -222,7 +222,7 @@ class MyCsi(BaseCSIFrame):
             "velocity": velocity
         }
         # 对每种方法在不同信噪比下进行测试
-        for temp in self.__test_list:
+        for temp in self.test_list:
             result_dict = dict()
             sparse = temp.group(1).lower()
             restore = temp.group(2).lower()

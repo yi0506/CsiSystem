@@ -232,7 +232,7 @@ class CS(BaseCS):
         """
         # 构造参数上下文
         param = {
-            'y_add_noise': y_add_noise,
+            'y': y_add_noise,
             'Beta': Beta,
             'k': k
         }
@@ -249,7 +249,7 @@ class CS(BaseCS):
         """
         # 构造参数上下文
         param = {
-            'y_add_noise': y_add_noise,
+            'y': y_add_noise,
             'Beta': Beta,
             'k': k
         }
@@ -263,7 +263,7 @@ class CS(BaseCS):
         """基于DCT稀疏基的SAMP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
         # 构造参数上下文
         param = {
-            'y_add_noise': y_add_noise,
+            'y': y_add_noise,
             'Beta': Beta,
             't': self.t
         }
@@ -277,7 +277,7 @@ class CS(BaseCS):
         """基于FFT稀疏基的SAMP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
         # 构造参数上下文
         param = {
-            'y_add_noise': y_add_noise,
+            'y': y_add_noise,
             'Beta': Beta,
             't': self.t
         }
@@ -291,7 +291,7 @@ class CS(BaseCS):
         """基于DCT稀疏基的SP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
         # 构造参数上下文
         param = {
-            'y_add_noise': y_add_noise,
+            'y': y_add_noise,
             'Beta': Beta,
             'k': k
         }
@@ -305,7 +305,7 @@ class CS(BaseCS):
         """基于FFT稀疏基的SP重构算法，*args仅用来接收多余参数，防止程序崩溃，无其他用途"""
         # 构造参数上下文
         param = {
-            'y_add_noise': y_add_noise,
+            'y': y_add_noise,
             'Beta': Beta,
             'k': k
         }
