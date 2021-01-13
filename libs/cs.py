@@ -199,12 +199,12 @@ class CS(BaseCS):
         """
         # 获取CS恢复计算必要参数
         Beta = param.get('Beta')
-        real_param = param['real_param']
-        imag_param = param['imag_param']
+        real_param = param.copy()
+        imag_param = param
         Beta_real = np.real(Beta)
         Beta_imag = np.imag(Beta)
-        real_param['Beta_real'] = Beta_real
-        real_param['Beta_imag'] = Beta_imag
+        real_param['Beta'] = Beta_real
+        imag_param['Beta'] = Beta_imag
         # 进行CS恢复计算
         restore_s_real = func(**real_param)  # s实部
         restore_s_imag = func(**imag_param)  # s虚部
