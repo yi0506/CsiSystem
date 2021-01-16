@@ -183,15 +183,7 @@ class BaseCS(object):
         # 保存结果到字典中并返回
         return {"snr": self.snr, "NMSE": avg_loss, "相似度": avg_similarity, "time": avg_time}
 
-
-class CS(BaseCS):
-    """
-    CS类
-
-    自定义所需的CS算法
-
-    """
-    def __FFT(self, func, param):
+    def FFT(self, func, param):
         """
         基于FFT稀疏基的CS重构算法
         func: 需要执行的具体CS算法
@@ -215,7 +207,7 @@ class CS(BaseCS):
         # 取实部，作为恢复的信号
         return np.real(restore_data)
 
-    def __DCT(self, func, param):
+    def DCT(self, func, param):
         """
         基于DCT稀疏基的CS重构算法
         func: 需要执行的具体CS算法
@@ -224,6 +216,15 @@ class CS(BaseCS):
         restore_s = func(**param)
         restore_data = np.matmul(self.sparse_matrix.T, restore_s)
         return restore_data
+
+
+class CS(BaseCS):
+    """
+    CS类
+
+    自定义所需的CS算法
+
+    """
 
     @route("dct_omp")
     def __DCT_OMP(self, y_add_noise, Beta, k, *args):
@@ -237,7 +238,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行DCT_OMP恢复算法
-        restore_data = self.__DCT(func=OMP, param=param)
+        restore_data = self.DCT(func=OMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -254,7 +255,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行FFT_OMP恢复算法
-        restore_data = self.__FFT(func=OMP, param=param)
+        restore_data = self.FFT(func=OMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -268,7 +269,7 @@ class CS(BaseCS):
             't': self.t
         }
         # 执行DCT_SAMP恢复算法
-        restore_data = self.__DCT(func=SAMP, param=param)
+        restore_data = self.DCT(func=SAMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -282,7 +283,7 @@ class CS(BaseCS):
             't': self.t
         }
         # 执行FFT_SAMP恢复算法
-        restore_data = self.__FFT(func=SAMP, param=param)
+        restore_data = self.FFT(func=SAMP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -296,7 +297,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行DCT_SAMP恢复算法
-        restore_data = self.__DCT(func=SP, param=param)
+        restore_data = self.DCT(func=SP, param=param)
         # 返回恢复后的数据
         return restore_data
 
@@ -310,7 +311,7 @@ class CS(BaseCS):
             'k': k
         }
         # 执行FFT_SAMP恢复算法
-        restore_data = self.__FFT(func=SP, param=param)
+        restore_data = self.FFT(func=SP, param=param)
         # 返回恢复后的数据
         return restore_data
 

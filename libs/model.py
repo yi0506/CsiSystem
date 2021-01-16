@@ -6,19 +6,38 @@ from torchsummary import summary
 from libs import config
 
 
-def res_unit(func, input_):
-    """用过残差网络提取特征"""
-    out = func(input_)
-    output = out + input_  # 加入残差结构
-    return output
+# def res_unit(func, input_):
+#     """用过残差网络提取特征"""
+#     out = func(input_)
+#     output = out + input_  # 加入残差结构
+#     return output
+#
+#
+# def normalize(input_):
+#     """归一化处理"""
+#     mean = torch.mean(input_, dim=-1, keepdim=True)
+#     std = torch.std(input_, dim=-1, keepdim=True)
+#     output = (input_ - mean) / std
+#     return output
 
 
-def normalize(input_):
-    """归一化处理"""
-    mean = torch.mean(input_, dim=-1, keepdim=True)
-    std = torch.std(input_, dim=-1, keepdim=True)
-    output = (input_ - mean) / std
-    return output
+class BaseModel(nn.Module):
+    """模型类基类"""
+
+    @staticmethod
+    def res_unit(func, input_):
+        """用过残差网络提取特征"""
+        out = func(input_)
+        output = out + input_  # 加入残差结构
+        return output
+
+    @staticmethod
+    def normalize(input_):
+        """归一化处理"""
+        mean = torch.mean(input_, dim=-1, keepdim=True)
+        std = torch.std(input_, dim=-1, keepdim=True)
+        output = (input_ - mean) / std
+        return output
 
 
 class Seq2Seq(nn.Module):
@@ -37,7 +56,7 @@ class Seq2Seq(nn.Module):
         return decoder_output
 
 
-class Encoder(nn.Module):
+class Encoder(BaseModel):
     """MS压缩"""
     channel_num = config.channel_num
     channel_multiple = config.channel_multiple
@@ -79,18 +98,18 @@ class Encoder(nn.Module):
         :return: [batch_size, 32*32/ratio]
         """
         # 标准化
-        out = normalize(input_)  # [batch_size, 32*32]
+        out = self.normalize(input_)  # [batch_size, 32*32]
         out = out.view(-1, self.channel_num, self.channel_num)  # [batch_size, 32, 32]
         # 分组卷积
-        out = res_unit(self.group_conv1, out)  # [batch_size, 32, 32]
-        out = res_unit(self.group_conv2, out)  # [batch_size, 32, 32]
+        out = self.res_unit(self.group_conv1, out)  # [batch_size, 32, 32]
+        out = self.res_unit(self.group_conv2, out)  # [batch_size, 32, 32]
         out = out.view(-1, self.channel_num * self.channel_num)  # [batch_size, 32*32]
         # 全连接
         output = self.fc_out(out)  # [batch_size, 32*32/ratio]
         return output
 
 
-class Decoder(nn.Module):
+class Decoder(BaseModel):
     """解压缩"""
     channel_num = config.channel_num
     channel_multiple = config.channel_multiple
@@ -159,20 +178,20 @@ class Decoder(nn.Module):
         :return: [batch_size, 32*32]
         """
         # 深度卷积
-        out = res_unit(self.deep_conv, de_noise)  # [batch_size, 32, 32]
+        out = self.res_unit(self.deep_conv, de_noise)  # [batch_size, 32, 32]
         # 分组卷积
-        out = res_unit(self.group_conv1, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
+        out = self.res_unit(self.group_conv1, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
         # 深度可分卷积
-        out = res_unit(self.deep_separate, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
+        out = self.res_unit(self.deep_separate, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
         # 深度可分卷积
-        out = res_unit(self.deep_separate_2, out)  # [batch_size, 32, 32] ----->[batch_size, 32 ,32]
+        out = self.res_unit(self.deep_separate_2, out)  # [batch_size, 32, 32] ----->[batch_size, 32 ,32]
         # 全连接
         out = out.view(-1, self.data_length)  # [batch_size, 32, 32] -----> [batch_size, 32*32]
         output = self.fc_restore(out)  # [batch_size, 32*32] -----> [batch_size, 32*32]
         return output
 
 
-class Noise(nn.Module):
+class Noise(BaseModel):
     """
     处理噪声：
     1.制造一个高斯白噪声，与encoder_output相加,作为输入Decoder的输入：through_channel
@@ -205,7 +224,7 @@ class Noise(nn.Module):
         else:
             through_channel = encoder_output
         # 标准化
-        out = normalize(through_channel)  # [batch_size, 32*32]
+        out = self.normalize(through_channel)  # [batch_size, 32*32]
         # 全连接
         out = self.sub_fc(out)  # [batch_size, 32*32]
         out = out.view(-1, self.channel_num, self.channel_num)  # [batch_size, 32, 32]
