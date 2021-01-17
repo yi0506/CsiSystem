@@ -6,21 +6,6 @@ from torchsummary import summary
 from libs import config
 
 
-# def res_unit(func, input_):
-#     """用过残差网络提取特征"""
-#     out = func(input_)
-#     output = out + input_  # 加入残差结构
-#     return output
-#
-#
-# def normalize(input_):
-#     """归一化处理"""
-#     mean = torch.mean(input_, dim=-1, keepdim=True)
-#     std = torch.std(input_, dim=-1, keepdim=True)
-#     output = (input_ - mean) / std
-#     return output
-
-
 class BaseModel(nn.Module):
     """模型类基类"""
 
@@ -40,7 +25,7 @@ class BaseModel(nn.Module):
         return output
 
 
-class Seq2Seq(nn.Module):
+class Seq2Seq(BaseModel):
     """训练模型三个部分合并封装"""
     def __init__(self, snr, ratio):
         super(Seq2Seq, self).__init__()
