@@ -11,7 +11,7 @@ from demo.OMP_demo import omp_reform,omp_process
 import h5py
 
 
-def cs_demo():
+def initial_data():
     sparse_A = pickle.load(open("../data/dct_32.pkl", "rb"))  # 稀疏基 [32*32, 32*32]
     dim = sparse_A.shape[0]
     ratio = 512  # 压缩比例
@@ -46,9 +46,9 @@ def cs_demo():
     return Beta, theta, sparse_A, k, index_k
 
 
-if __name__ == '__main__':
-
-    Beta, theta, sparse_A, k, index_k = cs_demo()
+def cs_demo():
+    """cs原理流程"""
+    Beta, theta, sparse_A, k, index_k = initial_data()
     data_restore, s_restore = omp_reform(theta=theta, Beta=Beta, A=sparse_A, index_k=index_k)
     data_restore, s_restore = omp_process(y=theta, Beta=Beta, A=sparse_A, k=k, index_k=index_k)
 
@@ -63,3 +63,7 @@ if __name__ == '__main__':
     plt.stem(x, data_restore, linefmt="r-", use_line_collection=True)
     plt.title("恢复的data")
     plt.show()
+
+
+if __name__ == '__main__':
+    cs_demo()
