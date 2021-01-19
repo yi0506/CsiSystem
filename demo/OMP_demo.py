@@ -15,6 +15,7 @@ plt.rcParams['axes.unicode_minus'] = False
 
 def omp_process(y, Beta, A, k):
     """
+    未知索引，重构信号
     :param y: 观测向量 [m, 1]
     :param Beta: 传感矩阵 [m, n], m << n
     :param k: 稀疏度
@@ -57,8 +58,8 @@ def omp_process(y, Beta, A, k):
     return restore_data, s
 
 
-def omp_reform(theta, Beta, A, index_k):
-    """已知索引重构信号"""
+def omp_process_know_index(theta, Beta, A, index_k):
+    """已知索引，重构信号"""
     Beta_row, Beta_col = Beta.shape
 
     iter_num = index_k.shape[0]  # 确定迭代次数

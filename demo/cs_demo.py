@@ -7,8 +7,40 @@
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
-from demo.OMP_demo import omp_reform,omp_process
+from demo.OMP_demo import omp_process_know_index,omp_process
 import h5py
+
+
+def sparse_data():
+    """查看稀疏基的稀疏效果"""
+    # 获取稀疏基
+    sparse_A = pickle.load(open("../data/dct_32.pkl", "rb"))  # 稀疏基 [32*32, 32*32]
+    dim = sparse_A.shape[0]
+    x = np.arange(dim)
+    k = 100
+
+    # 获取信道数据
+    data = h5py.File("../data/dataset_1000.h5", "r")["H"][2]
+    plt.figure(dpi=100)
+    plt.stem(x, data, linefmt="r-", use_line_collection=True)
+    plt.title("原始数据：data")
+    plt.show()
+
+    # 使用稀疏基稀疏信号
+    s = np.matmul(sparse_A, data)
+    plt.figure(dpi=100)
+    plt.stem(x, s, linefmt="r-", use_line_collection=True)
+    plt.title("稀疏系数：s")
+    plt.show()
+
+    # 去掉数值小的数据，方便与恢复出的稀疏系数对比
+    temp = np.sort(np.abs(s), axis=0)[dim - k]
+    temp_data = s
+    temp_data[np.abs(s) < temp] = 0
+    plt.figure(dpi=100)
+    plt.stem(x, temp_data, linefmt="r-", use_line_collection=True)
+    plt.title("稀疏系数去掉较小的数：s")
+    plt.show()
 
 
 def initial_data():
@@ -25,32 +57,18 @@ def initial_data():
     plt.title("原始数据：data")
     plt.show()
 
-    s = np.matmul(sparse_A, data)
-    plt.figure(dpi=100)
-    plt.stem(x, s, linefmt="r-", use_line_collection=True)
-    plt.title("稀疏系数：s")
-    plt.show()
-
-    # 去掉数值小的数据，方便与恢复出的稀疏系数对比
-    temp = np.sort(np.abs(s), axis=0)[dim - k]
-    temp_data = s
-    temp_data[np.abs(s) < temp] = 0
-    plt.figure(dpi=100)
-    plt.stem(x, temp_data, linefmt="r-", use_line_collection=True)
-    plt.title("稀疏系数去掉较小的数：s")
-    plt.show()
-
+    # CS压缩信号
     Fi = np.random.normal(0, 1, (ratio, dim))  # 设置观测矩阵
     Beta = np.matmul(Fi, sparse_A)  # 传感矩阵
-    theta = np.matmul(Fi, data)  # 观测向量
+    theta = np.matmul(Fi, data)  # CS数据压缩，获得观测向量
     return Beta, theta, sparse_A, k, index_k
 
 
 def cs_demo():
     """cs原理流程"""
     Beta, theta, sparse_A, k, index_k = initial_data()
-    data_restore, s_restore = omp_reform(theta=theta, Beta=Beta, A=sparse_A, index_k=index_k)
-    data_restore, s_restore = omp_process(y=theta, Beta=Beta, A=sparse_A, k=k, index_k=index_k)
+    data_restore, s_restore = omp_process_know_index(theta=theta, Beta=Beta, A=sparse_A, index_k=index_k)
+    data_restore, s_restore = omp_process(y=theta, Beta=Beta, A=sparse_A, k=k)
 
     x = np.arange(data_restore.shape[0])
 
