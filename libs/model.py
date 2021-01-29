@@ -9,6 +9,11 @@ from libs import config
 class BaseModel(nn.Module):
     """模型类基类"""
 
+    channel_num = config.channel_num
+    channel_multiple = config.channel_multiple
+    conv_group = config.conv_group
+    data_length = config.data_length
+
     @staticmethod
     def res_unit(func, input_):
         """用过残差网络提取特征"""
@@ -43,10 +48,6 @@ class Seq2Seq(BaseModel):
 
 class Encoder(BaseModel):
     """MS压缩"""
-    channel_num = config.channel_num
-    channel_multiple = config.channel_multiple
-    conv_group = config.conv_group
-    data_length = config.data_length
 
     def __init__(self, ratio):
         super(Encoder, self).__init__()
@@ -96,10 +97,6 @@ class Encoder(BaseModel):
 
 class Decoder(BaseModel):
     """解压缩"""
-    channel_num = config.channel_num
-    channel_multiple = config.channel_multiple
-    conv_group = config.conv_group
-    data_length = config.data_length
 
     def __init__(self):
         super(Decoder, self).__init__()
@@ -182,10 +179,6 @@ class Noise(BaseModel):
     1.制造一个高斯白噪声，与encoder_output相加,作为输入Decoder的输入：through_channel
     2.through_channel经过网络，将噪声弱化
     """
-    data_length = config.data_length
-    channel_num = config.channel_num
-    conv_group = config.conv_group
-    channel_multiple = config.channel_multiple
 
     def __init__(self, snr, ratio):
         super(Noise, self).__init__()
@@ -230,7 +223,7 @@ class Noise(BaseModel):
 
 
 if __name__ == '__main__':
-    model = Seq2Seq(5, 2).to(config.device)
+    model = Seq2Seq(5, 32).to(config.device)
     summary(model, (1024,))
     # for name, param in model.named_parameters():
     #     print(name, param.size())
