@@ -5,6 +5,7 @@ from tqdm import tqdm
 import h5py
 import numpy as np
 import pickle
+import os
 
 from libs import config
 
@@ -13,15 +14,23 @@ class CsiDataset(Dataset):
     """获取CSI反馈的信道数据集"""
     def __init__(self, is_train, velocity):
         self.is_train = is_train  # 是否取训练集
-        current_path = ".." if __name__ == "__main__" else "."
-        file_path = r"{}/data/matlab/test_10000_32_{}_H.mat".format(current_path, velocity) if self.is_train else r"{}/data/matlab/test_1000_32_{}_H.mat".format(current_path, velocity)
-        self.data = h5py.File(file_path, "r")["save_H"]
+        self.velocity = velocity  # 选择不同速度的数据集
+        self.BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def get_data(self, velocity):
+        dataset = "test_10000_32_{}_H.mat".format(velocity) if self.is_train else r"test_1000_32_{}_H.mat".format(velocity)
+        file_path = r"{}/data/matlab/{}".format(self.BASE_DIR, dataset)
+        return h5py.File(file_path, "r")["save_H"]
+
+    def collate_fn(self, batch):
+        batch_size = config.train_batch_size if self.is_train is True else config.test_batch_size
+        return torch.FloatTensor(batch).view(batch_size, -1)
 
     def __getitem__(self, index):
-        return self.data[index]
+        return self.get_data(self.velocity)[index]
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.get_data(self.velocity).shape[0]
 
     @property
     def size(self):
@@ -32,8 +41,8 @@ class CsiDataset(Dataset):
 def data_load(is_train, velocity):
     """数据集生成器"""
     batch_size = config.train_batch_size if is_train is True else config.test_batch_size
-    return DataLoader(dataset=CsiDataset(is_train, velocity), batch_size=batch_size, num_workers=0, drop_last=True,
-                      collate_fn=lambda x: torch.FloatTensor(x).view(batch_size, -1), shuffle=config.shuffle)
+    dataset = CsiDataset(is_train, velocity)
+    return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=6, drop_last=True, collate_fn=dataset.collate_fn, shuffle=config.shuffle)
 
 
 def data_generator(k=100, num=1000):
