@@ -8,11 +8,10 @@ from libs import config
 
 class BaseModel(nn.Module):
     """模型类基类"""
-
-    channel_num = config.channel_num
-    channel_multiple = config.channel_multiple
-    conv_group = config.conv_group
     data_length = config.data_length
+    channel_num = config.channel_num
+    conv_group = config.conv_group
+    channel_multiple = config.channel_multiple
 
     @staticmethod
     def res_unit(func, input_):
@@ -53,28 +52,29 @@ class Encoder(BaseModel):
         super(Encoder, self).__init__()
         self.ratio = ratio
         self.group_conv1 = nn.Sequential(
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU(),
+                                    nn.ELU(True),
                                     nn.BatchNorm1d(self.channel_num * self.channel_multiple),
                                     nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU()
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.channel_num),
                                 )
         self.group_conv2 = nn.Sequential(
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU(),
+                                    nn.ELU(True),
                                     nn.BatchNorm1d(self.channel_num * self.channel_multiple),
                                     nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU()
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.channel_num),
                                 )
         self.fc_out = nn.Sequential(
                                 nn.Linear(self.data_length, int(self.data_length / self.ratio)),
-                                nn.ELU()
+                                nn.ELU(True),
+                                nn.BatchNorm1d(int(self.data_length / self.ratio)),
                         )
 
     def forward(self, input_):
@@ -101,54 +101,51 @@ class Decoder(BaseModel):
     def __init__(self):
         super(Decoder, self).__init__()
         self.deep_conv = nn.Sequential(
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
                                               groups=self.channel_num, kernel_size=3, stride=1, padding=1),
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
                                               groups=self.channel_num, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU()
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.channel_num),
                                 )
         self.group_conv1 = nn.Sequential(
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU(),
+                                    nn.ELU(True),
                                     nn.BatchNorm1d(self.channel_num * self.channel_multiple),
                                     nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU()
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.channel_num),
                                 )
         self.deep_separate = nn.Sequential(
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
                                               groups=self.channel_num, kernel_size=3, stride=1, padding=1),
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
                                               kernel_size=1, stride=1),
-                                    nn.ELU(),
+                                    nn.ELU(True),
                                     nn.BatchNorm1d(self.channel_num * self.channel_multiple),
                                     nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU()
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.channel_num),
                                 )
         self.deep_separate_2 = nn.Sequential(
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num,
                                               groups=self.channel_num, kernel_size=3, stride=1, padding=1),
-                                    nn.BatchNorm1d(self.channel_num),
                                     nn.Conv1d(in_channels=self.channel_num, out_channels=self.channel_num * self.channel_multiple,
                                               kernel_size=1, stride=1),
-                                    nn.ELU(),
+                                    nn.ELU(True),
                                     nn.BatchNorm1d(self.channel_num * self.channel_multiple),
                                     nn.Conv1d(in_channels=self.channel_num * self.channel_multiple, out_channels=self.channel_num,
                                               groups=self.conv_group, kernel_size=3, stride=1, padding=1),
-                                    nn.ELU()
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.channel_num),
                                 )
         self.fc_restore = nn.Sequential(
-                                    nn.BatchNorm1d(self.data_length),
                                     nn.Linear(self.data_length, self.data_length),
-                                    nn.ELU(),
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.data_length),
                                     nn.Linear(self.data_length, self.data_length)
                                 )
 
@@ -160,7 +157,7 @@ class Decoder(BaseModel):
         :return: [batch_size, 32*32]
         """
         # 深度卷积
-        out = self.res_unit(self.deep_conv, de_noise)  # [batch_size, 32, 32]
+        out = self.res_unit(self.deep_conv, de_noise)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
         # 分组卷积
         out = self.res_unit(self.group_conv1, out)  # [batch_size, 32, 32] -----> [batch_size, 32 ,32]
         # 深度可分卷积
@@ -185,9 +182,9 @@ class Noise(BaseModel):
         self.snr = snr
         self.ratio = ratio
         self.sub_fc = nn.Sequential(
-                                    nn.BatchNorm1d(int(self.data_length / self.ratio)),
                                     nn.Linear(int(self.data_length / self.ratio), self.data_length),
-                                    nn.ELU()
+                                    nn.ELU(True),
+                                    nn.BatchNorm1d(self.data_length),
                                 )
 
     def forward(self, encoder_output):
@@ -223,7 +220,7 @@ class Noise(BaseModel):
 
 
 if __name__ == '__main__':
-    model = Seq2Seq(5, 32).to(config.device)
+    model = Seq2Seq(5, 8).to(config.device)
     summary(model, (1024,))
     # for name, param in model.named_parameters():
     #     print(name, param.size())
