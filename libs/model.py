@@ -22,7 +22,7 @@ class BaseModel(nn.Module):
 
     @staticmethod
     def normalize(input_):
-        """归一化处理"""
+        """标准化处理"""
         mean = torch.mean(input_, dim=-1, keepdim=True)
         std = torch.std(input_, dim=-1, keepdim=True)
         output = (input_ - mean) / std
