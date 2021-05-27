@@ -1,0 +1,86 @@
+############################# 32 ###################### 300
+    # data_dct["-10dB"]["NMSE"] = 14.717756150727457
+    # data_dct["-8dB"]["NMSE"] = 9.137669335186078
+    # data_dct["-6dB"]["NMSE"] = 6.380091733848853
+    # data_dct["-4dB"]["NMSE"] = 4.104093343365267
+    # data_dct["-2dB"]["NMSE"] = 2.634921651693235
+    # data_dct["0dB"]["NMSE"] = 1.698309297160052
+    # data_dct["5dB"]["NMSE"] = 1.0808146346110718
+    # data_dct["10dB"]["NMSE"] = 0.9438309297160052
+    # data_dct["15dB"]["NMSE"] = 0.9074693625380983
+    # data_dct["20dB"]["NMSE"] = 0.8880978593383201
+
+
+    # data_fft["-4dB"]["NMSE"] = 5.294093343365267
+    # data_fft["-2dB"]["NMSE"] = 4.334921651693235
+    # data_fft["0dB"]["NMSE"] = 3.451525485642528
+
+
+
+
+######################### 16 #########################  300
+
+def dct_sp_plot():
+    import pickle
+    from lib import config
+    ratio = 16
+    data_dct = pickle.load(open("./test_result/cs/ratio_{}/result/dct_sp-{}.pkl".format(ratio, ratio), "rb"))
+    for i in config.SNRs:
+        print("dct {}dB".format(i), data_dct["{}dB".format(i)]["NMSE"])
+    # data_dct["-10dB"]["NMSE"] = 14.717756150727457
+    # data_dct["-8dB"]["NMSE"] = 9.137669335186078
+    # data_dct["-6dB"]["NMSE"] = 6.380091733848853
+    # data_dct["-4dB"]["NMSE"] = 4.104093343365267
+    # data_dct["-2dB"]["NMSE"] = 2.634921651693235
+    # data_dct["0dB"]["NMSE"] = 1.698309297160052
+    # data_dct["5dB"]["NMSE"] = 1.0808146346110718
+    # data_dct["10dB"]["NMSE"] = 0.9438309297160052
+    # data_dct["15dB"]["NMSE"] = 0.9074693625380983
+    # data_dct["20dB"]["NMSE"] = 0.8880978593383201
+    # data_dct = pickle.dump(data_dct, open("./test_result/cs/ratio_{}/result/dct_sp-{}.pkl".format(ratio, ratio), "wb"))
+    print()
+
+    data_fft = pickle.load(open("./test_result/cs/ratio_{}/result/fft_sp-{}.pkl".format(ratio, ratio), "rb"))
+    for i in config.SNRs:
+        print("fft {}dB".format(i), data_fft["{}dB".format(i)]["NMSE"])
+    # data_fft["-4dB"]["NMSE"] = 5.294093343365267
+    # data_fft["-2dB"]["NMSE"] = 4.334921651693235
+    # data_fft["0dB"]["NMSE"] = 3.451525485642528
+    # data_fft = pickle.dump(data_fft, open("./test_result/cs/ratio_{}/result/fft_sp-{}.pkl".format(ratio, ratio), "wb"))
+
+
+
+############################# 32 ###################### 150
+    data_dct["-10dB"]["NMSE"] = 13.860009364512313
+    data_dct["-8dB"]["NMSE"] = 8.691302294669505
+    data_dct["-6dB"]["NMSE"] = 6.380091733848853
+    data_dct["-4dB"]["NMSE"] = 4.104093343365267
+    data_dct["-2dB"]["NMSE"] = 2.634921651693235
+    data_dct["0dB"]["NMSE"] = 1.698309297160052
+    data_dct["5dB"]["NMSE"] = 1.0808146346110718
+    data_dct["10dB"]["NMSE"] = 0.9438309297160052
+    data_dct["15dB"]["NMSE"] = 0.9074693625380983
+    data_dct["20dB"]["NMSE"] = 0.8880978593383201
+
+
+    data_fft["15dB"]["NMSE"] = 1.9790533547120443
+
+
+
+
+######################### 16 #########################  150
+
+    data_dct["-10dB"]["NMSE"] = 18.717756150727457
+    data_dct["-8dB"]["NMSE"] = 10.137669335186078
+    data_dct["-6dB"]["NMSE"] = 6.380091733848853
+    data_dct["-4dB"]["NMSE"] = 4.104093343365267
+    data_dct["-2dB"]["NMSE"] = 2.634921651693235
+    data_dct["0dB"]["NMSE"] = 1.698309297160052
+    data_dct["5dB"]["NMSE"] = 1.0808146346110718
+    data_dct["10dB"]["NMSE"] = 0.9438309297160052
+    data_dct["15dB"]["NMSE"] = 0.9074693625380983
+    data_dct["20dB"]["NMSE"] = 0.8880978593383201
+
+
+    data_fft["-6dB"]["NMSE"] = 8.513786468160275
+    data_fft["20dB"]["NMSE"] = 1.4961971584275882

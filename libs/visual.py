@@ -157,6 +157,7 @@ class Plot(object):
         best_model = kwargs.get("best_model", False)
         velocity = kwargs.get("velocity", config.velocity)
         loc = kwargs.get("loc", "best")
+        img_format = kwargs.get("img_format", "svg")
         plt.figure()
         num = 0
         for ratio in self.ratio_list:
@@ -172,7 +173,7 @@ class Plot(object):
             "title": r"$\mathrm{{SNR/{}\/\/{}km/h}}$".format(img_criteria, velocity),
             "loc": loc,
             "use_gird": False,
-            "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.svg".format(velocity, criteria, model_snr) if not best_model else "./images/{}km/{}-net-{}—best.svg".format(velocity, velocity, criteria),
+            "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.{3}".format(velocity, criteria, model_snr, img_format) if not best_model else "./images/{}km/{}-net-{}—best.{}".format(velocity, velocity, criteria, img_format),
             "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
@@ -186,6 +187,7 @@ class Plot(object):
         model_snr = kwargs.get("model_snr", None)
         velocity = kwargs.get("velocity", config.velocity)
         loc = kwargs.get("loc", "best")
+        img_format = kwargs.get("img_format", "svg")
         plt.figure()
         num = 0
         # 传统cs方法绘图
@@ -204,7 +206,7 @@ class Plot(object):
             "title": r"$\mathrm{{1/{}\/\/SNR/{}\/\/{}km/h}}$".format(ratio, img_criteria, velocity),
             "loc": loc,
             "use_gird": False,
-            "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.svg".format(velocity, criteria, ratio, model_snr),
+            "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr, img_format),
             "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
@@ -225,6 +227,7 @@ class Plot(object):
         velocity = kwargs.get("velocity", config.velocity)
         used_model = kwargs.get('cs_multi_ratio_model', None)
         loc = kwargs.get("loc", "best")
+        img_format = kwargs.get("img_format", "svg")
         plt.figure()
         for idx, ratio in enumerate(ratio_list):
             num = 0
@@ -244,7 +247,7 @@ class Plot(object):
                 "title": r"$\mathrm{{SNR/{}\/\/{}km/h}}$".format(img_criteria, velocity),
                 "loc": loc,
                 "use_gird": False,
-                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.svg".format(velocity, criteria, ratio_list, used_model),
+                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.{4}".format(velocity, criteria, ratio_list, used_model, img_format),
                 "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
@@ -357,7 +360,7 @@ class TimeForm(object, metaclass=type):
         print("{} time.json is done".format(self.velocity))
 
 
-def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, cs_multi_ratio_model=None):
+def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_format, cs_multi_ratio_model):
     """绘制图像"""
     my_plot = Plot()
 
@@ -365,15 +368,15 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, cs_multi_
     net_data_generator = LoadTestData(dtype="net", velocity=velocity, ratio_list=ratio_list)
     my_plot.data = net_data_generator(model_snr=train_models)
     for model_snr in train_models:
-        my_plot.net_plot("NMSE", model_snr=model_snr, velocity=velocity)
-        my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", velocity=velocity)
-        my_plot.net_plot("time", model_snr=model_snr, velocity=velocity)
+        my_plot.net_plot("NMSE", model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", velocity=velocity, img_format=img_format)
+        my_plot.net_plot("time", model_snr=model_snr, velocity=velocity, img_format=img_format)
 
     # 神经网络：对于每种信噪比下的结果，选取对应信噪的模型进行绘图
     my_plot.data = net_data_generator(model_snr=config.train_model_SNRs)
-    my_plot.net_plot("NMSE", best_model=True, velocity=velocity)
-    my_plot.net_plot("相似度", best_model=True, loc="lower right", velocity=velocity)
-    my_plot.net_plot("time", best_model=True, velocity=velocity)
+    my_plot.net_plot("NMSE", best_model=True, velocity=velocity, img_format=img_format)
+    my_plot.net_plot("相似度", best_model=True, loc="lower right", velocity=velocity, img_format=img_format)
+    my_plot.net_plot("time", best_model=True, velocity=velocity, img_format=img_format)
 
     # 传统CS算法绘图，单压缩率
     cs_data_generator = LoadTestData(dtype="cs", velocity=velocity, ratio_list=ratio_list)
@@ -381,16 +384,16 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, cs_multi_
         cs_data = cs_data_generator(model_snr=model_snr)
         my_plot.data = cs_data
         for ratio in config.ratio_list:
-            my_plot.cs_plot("NMSE", ratio=ratio, model_snr=model_snr, velocity=velocity)
-            my_plot.cs_plot("相似度", ratio=ratio, model_snr=model_snr, velocity=velocity)
-            my_plot.cs_plot("time", ratio=ratio, model_snr=model_snr, velocity=velocity)
+            my_plot.cs_plot("NMSE", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
+            my_plot.cs_plot("相似度", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
+            my_plot.cs_plot("time", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
 
     # 传统CS算法绘图，多压缩率合并，与选择的网络模型进行比较
     cs_data = cs_data_generator(model_snr=cs_multi_ratio_model)
     my_plot.data = cs_data
-    my_plot.cs_plot_multi_ratio("NMSE", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model)
-    my_plot.cs_plot_multi_ratio("相似度", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model)
-    my_plot.cs_plot_multi_ratio("time", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model)
+    my_plot.cs_plot_multi_ratio("NMSE", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
+    my_plot.cs_plot_multi_ratio("相似度", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
+    my_plot.cs_plot_multi_ratio("time", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
 
 
 def main_form(velocity, ratio_list, model):
