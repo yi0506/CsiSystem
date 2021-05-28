@@ -21,7 +21,7 @@ data_length = 32 * 32  # 信号矩阵变成一维向量后的长度
 train_batch_size = 250
 test_batch_size = 100
 SNRs = [-10, -8, -6, -4, -2, 0, 5, 10, 15, 20]  # 测试时的信噪比，画图的横坐标不能有None
-train_model_SNRs = [-10, -8, -6, -4, -2, 0, 5, 10, 15, 20, None]  # 不同信噪比的模型
+train_model_SNRs = [-10, -8, -6, -4, -2, 0, 5, 10, 15, 20, None]  # 不同信噪比的模型，None表示无噪声
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 clip = 0.01  # 梯度裁剪阈值
 conv_group = 16  # 分组卷积的分组数
@@ -36,7 +36,6 @@ full_sampling = False  # 是否全采样，即使用dct，fft压缩
 t = 1  # samp算法步长
 # method_list = ["dct:dct_omp", "dct:dct_samp", "fft:fft_omp", "fft:fft_samp", "dct:idct", "fft:ifft", "dct:dct_sp", "fft:fft_sp"]  # cs方法列表
 method_list = ["dct:dct_omp", "fft:fft_omp", "dct:idct", "fft:ifft", "dct:dct_sp", "fft:fft_sp"]  # cs方法列表
-# method_list = ["dct:dct_sp"]
 
 
 ################### old_csi ##################

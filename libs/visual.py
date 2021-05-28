@@ -139,8 +139,8 @@ class Plot(object):
             "use_gird": 是否添加网格线,
             "img_name": 图片名字
         }
-        model_snr: 哪个信噪比模型
-        best_model: 是否选择最佳模型的结果，信噪比小于0dB的用各自模型，大于0dB的用None模型
+        model_snr: 取哪个信噪比模型的测试数据进行绘图
+        best_model: 是否选择最佳模型的结果，不同信噪比分别使用相应信噪比下训练好的模型的测试数据进行绘图
         velocity: 移动速度
 
         """
