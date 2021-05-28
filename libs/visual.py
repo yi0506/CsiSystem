@@ -304,7 +304,7 @@ class Plot(object):
         if use_grid:
             fig.grid(linestyle="--", alpha=0.4)
         rec_mkdir(img_name)
-        fig.savefig(img_name)
+        fig.savefig(img_name, bbox_inches='tight', pad_inches=0)
         fig.close()
         print("{} was done.".format(img_name))
 

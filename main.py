@@ -14,6 +14,7 @@ def main():
     # csi.old_csi_test()
     # csi.cs_test()
     csi.visual_display(img_format="eps")
+    csi.visual_display(img_format="svg")
     print("~\(≧ w ≦)/~  砸瓦鲁多!!!!!!!!!")
 
 
