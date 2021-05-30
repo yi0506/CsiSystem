@@ -170,7 +170,7 @@ class Plot(object):
         description = {
             "xlable": r"$\mathrm{SNR(dB)}$",
             "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-            "title": r"$\mathrm{{SNR/{}\/\/{}km/h}}$".format(img_criteria, velocity),
+            "title": "$\mathrm{{{}km/h}}$".format(velocity),
             "loc": loc,
             "use_gird": False,
             "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.{3}".format(velocity, criteria, model_snr, img_format) if not best_model else "./images/{}km/{}-net-{}—best.{}".format(velocity, velocity, criteria, img_format),
@@ -203,7 +203,7 @@ class Plot(object):
         description = {
             "xlable": r"$\mathrm{SNR(dB)}$",
             "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-            "title": r"$\mathrm{{1/{}\/\/SNR/{}\/\/{}km/h}}$".format(ratio, img_criteria, velocity),
+            "title": "$\mathrm{{{}km/h}}$".format(velocity),
             "loc": loc,
             "use_gird": False,
             "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr, img_format),
@@ -244,7 +244,7 @@ class Plot(object):
         description = {
                 "xlable": r"$\mathrm{SNR(dB)}$",
                 "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-                "title": r"$\mathrm{{SNR/{}\/\/{}km/h}}$".format(img_criteria, velocity),
+                "title": "$\mathrm{{{}km/h}}$".format(velocity),
                 "loc": loc,
                 "use_gird": False,
                 "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.{4}".format(velocity, criteria, ratio_list, used_model, img_format),
