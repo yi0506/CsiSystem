@@ -294,6 +294,8 @@ class Plot(object):
         fig.xlabel(xlable, fontsize=12)
         fig.ylabel(ylable, fontsize=12)
         fig.title(title, fontsize=15)
+        if criteria == "NMSE":
+            fig.yscale('log')
         if criteria == r"\rho":
             fig.yticks(ticks=self.y_ticks_similarity, fontproperties="Times New Roman")
         else:
