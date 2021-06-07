@@ -38,7 +38,8 @@ class BaseCS(object):
         IDCT: 离散余弦逆变换
         FFT：快速傅里叶变换
         OMP：正交匹配追踪
-        SAMP；自适应匹配追踪算法
+        SAMP：自适应匹配追踪算法
+        SP：子空间追踪
     """
 
     def __init__(self, **kwargs):
