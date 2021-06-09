@@ -65,7 +65,7 @@ class BaseCS(object):
                 self.snr ----> config.SNRs  # 得到信噪比
                 self.full_sampling = full_sampling  # 设置是否全采样
                 self.k = config.k  # 设置稀疏度
-                self.Fi_m -----> cs_data_length / ratio  # 观得到测矩阵的行数
+                self.Fi_m -----> cs_data_length / ratio  # 得到观测矩阵的行数
                 self.t -----> config.t  # 设置SAMP算法步长
                 self.Fi_ratio = config.cs_ratio_list  # 压缩率
                 self.velocity = config.velocity  # 不同速度下的数据集
