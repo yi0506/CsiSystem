@@ -11,6 +11,7 @@ from libs.train import rec_mkdir
 from libs import config
 
 
+# matplotlib字体全局设置
 PREFERENCE = {
         "font.family": 'serif',
         "mathtext.fontset": 'stix',
