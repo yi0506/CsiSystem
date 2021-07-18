@@ -52,13 +52,13 @@ class LoadTestData(object):
         y_dict: {"seq2seq": {}, "old_csi": {}}
 
         y_dict["seq2seq"]: {
-                            "nonedB":{"2":{"0dB":{loss、similarity、time},
+                            "nonedB":{"2":{"0dB":{loss、similarity、time、capacity},
                             "5dB":{},...}, "4":{},...}, "5dB":{}
                         }
 
         y_dict["old_csi"]: {
-                            "2": {"-10dB":{loss、similarity、time}, "20dB":{}, ...},
-                            "4": {"10dB":{loss、similarity、time},{}, .....
+                            "2": {"-10dB":{loss、similarity、time、capacity}, "20dB":{}, ...},
+                            "4": {"10dB":{loss、similarity、time、capacity},{}, .....
                         }
         """
         model_snr = kwargs.get('model_snr')
@@ -86,7 +86,7 @@ class LoadTestData(object):
         y_dict：不同压缩率下，每种方式在不同信噪比下的测试结果,包含不同压缩率的y_one_ratio，
         y_dict: {"2": y_one_ratio, "4": y_one_ratio, .....,}
         y_one_ratio: {
-                        "dct_idct": {"0dB":{similarity, time, loss}, "5dB":{},...},
+                        "dct_idct": {"0dB":{similarity, time, loss, capacity}, "5dB":{},...},
                          "dct_dct_omp":{}, ....,
                         "method":["dct_idct", "dct_omp",...],
                         "net":{"0dB":{loss、similarity、time}, "5dB":{}, ...}
@@ -149,7 +149,7 @@ class Plot(object):
 
     def net_plot(self, criteria, **kwargs):
         """
-        :param criteria: "loss"、"相似度"、"time"
+        :param criteria: "loss"、"相似度"、"time"、"capacity"
         不同压缩率下，criteria随着snr的变化
         纵坐标信噪比，横坐标loss、similarity、time，比较不同压缩率的情况
         对比csi_net与old_csi在不同指标下随着snr的变化
@@ -181,7 +181,7 @@ class Plot(object):
 
     def cs_plot(self, criteria, **kwargs):
         """
-        :param criteria: "loss"、"similarity"、"time"
+        :param criteria: "loss"、"similarity"、"time"、"capacity"
         在相同压缩率下，绘制不同cs方法的criteria随着snr的变化，同时对比csi_net与old_csi
         """
         ratio = kwargs.get("ratio")
@@ -214,7 +214,7 @@ class Plot(object):
 
     def cs_plot_multi_ratio(self, criteria, **kwargs):
         """
-        :param criteria: "loss"、"相似度"、"time"
+        :param criteria: "loss"、"相似度"、"time"、"capacity"
         :param kwargs: {
                             ratio_list: 压缩率列表，
                             use_grid: 是否使用网格线，
@@ -315,10 +315,11 @@ class Plot(object):
     def trans_criteria(criteria):
         """
         对字符串进行转化：
-                a.将"time"转化为"Time"
-                b.将"相似度"转化为r"\rho"
+                a.将"time"转化为 "Time"
+                b.将"相似度"转化为 "\\rho"
+                c.其余不变
 
-        :return: "Time", "\rho", "NMSE"
+        :return: "Time", "\\rho", "NMSE", "Capacity"
         """
         if criteria == "time":
             return "Time"  # time大写
@@ -374,12 +375,14 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
         my_plot.net_plot("NMSE", model_snr=model_snr, velocity=velocity, img_format=img_format)
         my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", velocity=velocity, img_format=img_format)
         my_plot.net_plot("time", model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.net_plot("Capacity", model_snr=model_snr, velocity=velocity, img_format=img_format)
 
     # 神经网络：对于每种信噪比下的结果，选取对应信噪的模型进行绘图
     my_plot.data = net_data_generator(model_snr=config.train_model_SNRs)
     my_plot.net_plot("NMSE", best_model=True, velocity=velocity, img_format=img_format)
     my_plot.net_plot("相似度", best_model=True, loc="lower right", velocity=velocity, img_format=img_format)
     my_plot.net_plot("time", best_model=True, velocity=velocity, img_format=img_format)
+    my_plot.net_plot("Capacity", best_model=True, velocity=velocity, img_format=img_format)
 
     # 传统CS算法绘图，单压缩率
     cs_data_generator = LoadTestData(dtype="cs", velocity=velocity, ratio_list=ratio_list)
@@ -390,6 +393,7 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
             my_plot.cs_plot("NMSE", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
             my_plot.cs_plot("相似度", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
             my_plot.cs_plot("time", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
+            my_plot.cs_plot("Capacity", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
 
     # 传统CS算法绘图，多压缩率合并，与选择的网络模型进行比较
     cs_data = cs_data_generator(model_snr=cs_multi_ratio_model)
@@ -397,6 +401,7 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
     my_plot.cs_plot_multi_ratio("NMSE", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
     my_plot.cs_plot_multi_ratio("相似度", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
     my_plot.cs_plot_multi_ratio("time", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
+    my_plot.cs_plot_multi_ratio("Capacity", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
 
 
 def main_form(velocity, ratio_list, model):

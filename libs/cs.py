@@ -7,6 +7,7 @@ import torch
 import pickle
 import tqdm
 import time
+from libs import config
 
 
 FUNC_METHOD = dict()  # 保存所有的重构方法与对应的重构函数，key：重构信号的方法，value：对应重构信号方法的函数
@@ -83,6 +84,7 @@ class BaseCS(object):
         similarity_list = list()
         loss_list = list()
         time_list = list()
+        capacity_list = list()
         bar = tqdm.tqdm(dataset(self.velocity))
         for data in bar:
             data = data.reshape(-1, 1)
@@ -95,14 +97,15 @@ class BaseCS(object):
             restore_data = self.__restore(self.restore_method, y_add_noise, Beta, k)
             stop_time = time.time()  # 结束时间
             # 计算相似度、损失、消耗的时间
-            similarity, loss = self.__evaluate(data, restore_data)
+            similarity, loss, capacity = self.__evaluate(data, restore_data)
             similarity_list.append(similarity.item())
             loss_list.append(loss.item())
             time_list.append(stop_time-start_time)
+            capacity_list.append(capacity)
             # 显示进度
-            bar.set_description("ratio:{}\t{}:{}\tnoise_SNR:{}dB\tloss:{:}\tsimilarity:{:.3f}".format(self.Fi_ratio, self.sparse_method, self.restore_method, self.snr, loss.item(), similarity.item()))
+            bar.set_description("ratio:{}\t{}:{}\tnoise_SNR:{}dB\tloss:{}\tsimilarity:{:.3f}\tcapacity:{}".format(self.Fi_ratio, self.sparse_method, self.restore_method, self.snr, loss.item(), similarity.item(), capacity.item()))
         # 将测试结果返回
-        return self.__save_result(loss_list, similarity_list, time_list)
+        return self.__save_result(loss_list, similarity_list, time_list, capacity_list)
 
     def __compress(self, data):
         """
@@ -166,23 +169,24 @@ class BaseCS(object):
         else:
             raise KeyError("重构方法错误")
 
-    @staticmethod
-    def __evaluate(data, refine_data):
+    def __evaluate(self, data, refine_data):
         """评估余弦相似度、mse损失"""
         data = torch.tensor(data)
         refine_data = torch.tensor(refine_data)
         loss = F.mse_loss(data, refine_data)
         similarity = torch.cosine_similarity(data, refine_data, dim=0)
-        return similarity, loss
+        capacity = torch.log2(torch.sum(1 + torch.linalg.svd(refine_data)[1] * self.snr / config.Nt))  # 信道容量:SVD分解
+        return similarity, loss, capacity
 
-    def __save_result(self, loss_list, similarity_list, time_list):
+    def __save_result(self, loss_list, similarity_list, time_list, capacity_list):
         """计算平局损失、平均相似度与平均计算时间"""
         avg_loss = np.mean(loss_list)
         avg_similarity = np.mean(similarity_list)
         avg_time = np.mean(time_list)
+        avg_capacity = np.mean(capacity_list)
 
         # 保存结果到字典中并返回
-        return {"snr": self.snr, "NMSE": avg_loss, "相似度": avg_similarity, "time": avg_time}
+        return {"snr": self.snr, "NMSE": avg_loss, "相似度": avg_similarity, "time": avg_time, "Capacity": avg_capacity}
 
     def FFT(self, func, param):
         """

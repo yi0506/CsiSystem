@@ -236,6 +236,7 @@ class Tester(object):
         loss_list = list()
         similarity_list = list()
         time_list = list()
+        capacity_list = list()
         for idx, input_ in enumerate(self.data_loader):
             with torch.no_grad():
                 start_time = time.time()
@@ -243,19 +244,22 @@ class Tester(object):
                 output = self.model(input_)
                 stop_time = time.time()
                 cur_similarity = torch.cosine_similarity(output, input_, dim=-1).mean().cpu().item()
+                cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * self.snr / config.Nt)).item()  # 信道容量:SVD分解
+                capacity_list.append(cur_capacity / config.test_batch_size)
                 cur_loss = F.mse_loss(output, input_).cpu().item()  # 一个batch的损失
                 loss_list.append(cur_loss / self.batch_size)  # 处理一个信号的损失
                 similarity_list.append(cur_similarity)  # 处理一个信号的相似度
                 time_list.append((stop_time - start_time) / self.batch_size)  # 处理一个信号的时间
-        return self.save_result(loss_list, similarity_list, time_list)
+        return self.save_result(loss_list, similarity_list, time_list, capacity_list)
 
-    def save_result(self, loss, similarity, time) -> dict:
+    def save_result(self, loss, similarity, time, capacity) -> dict:
         """保存测试结果"""
         # 计算平均相似度与损失
         avg_loss = np.mean(loss)
         avg_similarity = np.mean(similarity)
         avg_time = np.mean(time)
-        result = {"ratio": self.ratio, "相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time}
+        avg_capacity = np.mean(capacity)
+        result = {"ratio": self.ratio, "相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
         return result
 
 

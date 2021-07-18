@@ -68,6 +68,7 @@ def test(snr_model, ratio, velocity):
         loss_list = list()
         similarity_list = list()
         time_list = list()
+        capacity_list = list()
         data_loader = data_load(False, velocity)
         for idx, input_ in enumerate(tqdm(data_loader)):
             with torch.no_grad():
@@ -77,6 +78,8 @@ def test(snr_model, ratio, velocity):
                 stop_time = time.time()
                 cur_similarity = cosine_similarity(output, input_, dim=-1).mean().cpu().item()
                 cur_loss = mse_loss(output, input_).cpu().item()
+                cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
+                capacity_list.append(cur_capacity / config.test_batch_size)
                 loss_list.append(cur_loss / config.test_batch_size)
                 similarity_list.append(cur_similarity)
                 time_list.append((stop_time - start_time) / config.test_batch_size)
@@ -85,8 +88,9 @@ def test(snr_model, ratio, velocity):
         avg_loss = np.mean(loss_list)
         avg_similarity = np.mean(similarity_list)
         avg_time = np.mean(time_list)
-        print("v:{}\tratio:{}\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}".format(velocity, ratio, snr, avg_loss, avg_similarity, avg_time))
-        result = {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time}
+        avg_capacity = np.mean(capacity_list)
+        print("v:{}\tratio:{}\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(velocity, ratio, snr, avg_loss, avg_similarity, avg_time, avg_capacity))
+        result = {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
         result_dict["{}dB".format(snr)] = result
     file_path = "./test_result/{}km/csi_net/csi_net_{}_{}dB.pkl".format(velocity, ratio, snr_model)
     rec_mkdir(file_path)

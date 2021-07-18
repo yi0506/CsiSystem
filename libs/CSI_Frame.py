@@ -202,7 +202,7 @@ class MyCsi(BaseCSIFrame):
                 file_path = "./test_result/{}km/old_csi/old_csi_{}.pkl".format(velocity, ratio)
                 rec_mkdir(file_path)
                 pickle.dump(data_dict, open(file_path, "wb"))
-                print(data_dict)
+                print(result)
         else:
             model = Tester()
             result = model.run()
@@ -210,7 +210,7 @@ class MyCsi(BaseCSIFrame):
             file_path = "./test_result/{}km/old_csi/old_csi_no_noise_{}.pkl".format(velocity, ratio)
             rec_mkdir(file_path)
             pickle.dump(data_dict, open(file_path, "wb"))
-            print(data_dict)
+            print(result)
 
     def cs_test_done(self, velocity, ratio):
         """cs执行测试"""

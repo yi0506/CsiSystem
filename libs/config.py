@@ -29,7 +29,7 @@ channel_multiple = 4  # 卷积层通道倍数
 
 
 ###################  CS  ##################
-
+Nt = 16  # 发射天线数目
 cs_data_length = 32 * 32
 k = 32  # k 稀疏度，由于存在sp算法，k不能大于32，否则k会大于Beta矩阵的行数
 full_sampling = False  # 是否全采样，即使用dct，fft压缩
