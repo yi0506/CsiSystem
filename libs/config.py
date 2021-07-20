@@ -35,7 +35,7 @@ k = 32  # k 稀疏度，由于存在sp算法，k不能大于32，否则k会大�
 full_sampling = False  # 是否全采样，即使用dct，fft压缩
 t = 1  # samp算法步长
 # method_list = ["dct:dct_omp", "dct:dct_samp", "fft:fft_omp", "fft:fft_samp", "dct:idct", "fft:ifft", "dct:dct_sp", "fft:fft_sp"]  # cs方法列表
-method_list = ["dct:dct_omp", "fft:fft_omp", "dct:idct", "fft:ifft", "dct:dct_sp", "fft:fft_sp"]  # cs方法列表
+method_list = ["dct:dct_omp", "fft:fft_omp", "dct:dct_sp", "fft:fft_sp"]  # cs方法列表
 
 
 ################### old_csi ##################
