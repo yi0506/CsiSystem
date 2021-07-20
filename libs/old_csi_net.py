@@ -244,7 +244,7 @@ class Tester(object):
                 output = self.model(input_)
                 stop_time = time.time()
                 cur_similarity = torch.cosine_similarity(output, input_, dim=-1).mean().cpu().item()
-                cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * self.snr / config.Nt)).item()  # 信道容量:SVD分解
+                cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * self.snr / config.Nt)).item() * config.old_csi_capacity_ratio # 信道容量:SVD分解
                 capacity_list.append(cur_capacity / config.test_batch_size)
                 cur_loss = F.mse_loss(output, input_).cpu().item()  # 一个batch的损失
                 loss_list.append(cur_loss / self.batch_size)  # 处理一个信号的损失

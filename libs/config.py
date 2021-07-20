@@ -10,6 +10,8 @@ velocity = 50  # 不同速度下的数据集，单位km/h，[10km/h 50km/h 100km
 velocity_list = [50, 100, 150, 200, 300]  # 速度集合
 ratio_list = [2, 4, 8, 16, 32]  # 压缩率列表
 y_ticks_similarity = [0, 0.2, 0.4, 0.6, 0.8, 1.0]  # 画图时，相似度的y轴
+Nt = 16  # 发射天线数目
+
 
 
 ################ model\dataset #################
@@ -26,10 +28,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 clip = 0.01  # 梯度裁剪阈值
 conv_group = 16  # 分组卷积的分组数
 channel_multiple = 4  # 卷积层通道倍数
+net_capacity_ratio = 120  # 系统容量倍率
 
 
 ###################  CS  ##################
-Nt = 16  # 发射天线数目
 cs_data_length = 32 * 32
 k = 32  # k 稀疏度，由于存在sp算法，k不能大于32，否则k会大于Beta矩阵的行数
 full_sampling = False  # 是否全采样，即使用dct，fft压缩
@@ -43,7 +45,7 @@ old_csi_net_compress_ratio = 32  # 压缩率
 old_csi_data_length = 32 * 32  # 信道矩阵元素个数
 old_csi_slope = 0.3  # leaky—relu的负斜率
 old_csi_channel_num = 32  # 信道矩阵通道数
-
+old_csi_capacity_ratio = 100  # 系统容量倍率
 
 if __name__ == '__main__':
     print(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))

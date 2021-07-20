@@ -78,7 +78,7 @@ def test(snr_model, ratio, velocity):
                 stop_time = time.time()
                 cur_similarity = cosine_similarity(output, input_, dim=-1).mean().cpu().item()
                 cur_loss = mse_loss(output, input_).cpu().item()
-                cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
+                cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item() * config.net_capacity_ratio  # 信道容量:SVD分解
                 capacity_list.append(cur_capacity / config.test_batch_size)
                 loss_list.append(cur_loss / config.test_batch_size)
                 similarity_list.append(cur_similarity)
