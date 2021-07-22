@@ -160,16 +160,16 @@ class Plot(object):
         model_snr = kwargs.get("model_snr", None)
         best_model = kwargs.get("best_model", False)
         velocity = kwargs.get("velocity", config.velocity)
-        ratio_list = kwargs.get("ratio_list", config.ratio_list)
+        plot_ratio_list = kwargs.get("plot_ratio_list", config.ratio_list)  # 选择将哪个压缩比的线画上去
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
         plt.figure()
         num = 0
-        for ratio in ratio_list:
+        for ratio in plot_ratio_list:
             y, y_old = self.net_plt_get_net_data(self.__data, criteria, best_model, model_snr, ratio)
             # 神经网络在不同压缩率下绘图
-            plt.plot(self.snr_list, y, label=r"1/{} RM-Net".format(ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
-            plt.plot(self.snr_list, y_old, linestyle=self.line_style[1], label=r"1/{} CsiNet".format(ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y, label=r"1/{} RM-Net".format(plot_ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_old, linestyle=self.line_style[1], label=r"1/{} CsiNet".format(plot_ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
             num += 1
         img_criteria = self.trans_criteria(criteria)
         description = {
@@ -228,13 +228,13 @@ class Plot(object):
         在的不同缩率下，绘制不同cs方法的criteria随着snr的变化，同时对比csi_net与old_csi
         :return:
         """
-        plot_ratio_list = kwargs.get("plot_ratio_list", config.ratio_list)  # 选择将哪个压缩比的线画上去
+        ratio_list = kwargs.get("ratio_list", config.ratio_list)
         velocity = kwargs.get("velocity", config.velocity)
         used_model = kwargs.get('cs_multi_ratio_model', None)
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
         plt.figure()
-        for idx, ratio in enumerate(plot_ratio_list):
+        for idx, ratio in enumerate(ratio_list):
             num = 0
             # 传统cs方法绘图
             for method in self.__data[str(ratio)]["method"]:
@@ -335,14 +335,15 @@ class Plot(object):
 
 class TimeForm(object, metaclass=type):
     """生成系统耗时的Json数据文件"""
-    def __init__(self, data, velocity):
+    def __init__(self, data, velocity, ratio_list):
         self.data = data
         self.velocity = velocity
+        self.ratio_list = ratio_list
 
     def csi_time_form(self):
         """在不同压缩率下，对不同算法的系统耗时以表格形式输出,对不同算法取系统耗时最短的作为最终结果"""
         csi_dict = dict()  # 保存一种算法不同压缩率下的系统耗时
-        for ratio in config.ratio_list:
+        for ratio in self.ratio_list:
             time_dict = dict()  # 保存一种算法同一种压缩率下的系统耗时
             # 对CS算法获取系统耗时
             for method in self.data[str(ratio)]["method"]:
@@ -408,7 +409,7 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
 def main_form(velocity, ratio_list, model):
     """输出系统耗时json文件，cs、old_csi、net之间的对比"""
     cs_data = LoadTestData(dtype='cs', velocity=velocity, ratio_list=ratio_list)(model_snr=model)
-    form = TimeForm(data=cs_data, velocity=velocity)
+    form = TimeForm(data=cs_data, velocity=velocity, ratio_list=ratio_list)
     form.csi_time_form()
 
 
