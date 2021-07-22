@@ -228,13 +228,13 @@ class Plot(object):
         在的不同缩率下，绘制不同cs方法的criteria随着snr的变化，同时对比csi_net与old_csi
         :return:
         """
-        ratio_list = kwargs.get("ratio_list", config.ratio_list)
+        plot_ratio_list = kwargs.get("plot_ratio_list", config.ratio_list)  # 选择将哪个压缩比的线画上去
         velocity = kwargs.get("velocity", config.velocity)
         used_model = kwargs.get('cs_multi_ratio_model', None)
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
         plt.figure()
-        for idx, ratio in enumerate(ratio_list):
+        for idx, ratio in enumerate(plot_ratio_list):
             num = 0
             # 传统cs方法绘图
             for method in self.__data[str(ratio)]["method"]:
