@@ -122,7 +122,6 @@ class LoadTestData(object):
 class Plot(object):
     """对测试的结果进行可视化展示，并保存图片"""
     marker_list = ["o", "*", "d", "v", "s", "x", "h", "^", "<"]
-    ratio_list = config.ratio_list
     snr_list = config.SNRs
     line_style = ["solid", "dashed", "dashdot", "dotted"]
     y_ticks_similarity = config.y_ticks_similarity
@@ -145,7 +144,11 @@ class Plot(object):
         velocity: 移动速度
 
         """
-        self.data = data
+        self.__data = data
+    
+    def set_plot_data(self, data):
+        """设置画图的数据来源"""
+        self.__data = data
 
     def net_plot(self, criteria, **kwargs):
         """
@@ -157,15 +160,16 @@ class Plot(object):
         model_snr = kwargs.get("model_snr", None)
         best_model = kwargs.get("best_model", False)
         velocity = kwargs.get("velocity", config.velocity)
+        ratio_list = kwargs.get("ratio_list", config.ratio_list)
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
         plt.figure()
         num = 0
-        for ratio in self.ratio_list:
-            y, y_old = self.net_plt_get_net_data(self.data, criteria, best_model, model_snr, ratio)
+        for ratio in ratio_list:
+            y, y_old = self.net_plt_get_net_data(self.__data, criteria, best_model, model_snr, ratio)
             # 神经网络在不同压缩率下绘图
-            plt.plot(self.snr_list, y, label=r"1/{} RM-Net".format(self.ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
-            plt.plot(self.snr_list, y_old, linestyle=self.line_style[1], label=r"1/{} CsiNet".format(self.ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y, label=r"1/{} RM-Net".format(ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_old, linestyle=self.line_style[1], label=r"1/{} CsiNet".format(ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
             num += 1
         img_criteria = self.trans_criteria(criteria)
         description = {
@@ -182,35 +186,36 @@ class Plot(object):
     def cs_plot(self, criteria, **kwargs):
         """
         :param criteria: "loss"、"similarity"、"time"、"capacity"
-        在相同压缩率下，绘制不同cs方法的criteria随着snr的变化，同时对比csi_net与old_csi
+        在不同压缩率下，绘制不同cs方法的criteria随着snr的变化，同时对比csi_net与old_csi
         """
-        ratio = kwargs.get("ratio")
+        ratio_list = kwargs.get("ratio_list", config.ratio_list)
         model_snr = kwargs.get("model_snr", None)
         velocity = kwargs.get("velocity", config.velocity)
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
         plt.figure()
         num = 0
-        # 传统cs方法绘图
-        for method in self.data[str(ratio)]["method"]:
-            y = self.cs_plt_get_cs_data(self.data[str(ratio)][method], criteria)
-            plt.plot(self.snr_list, y, label=r"{}".format(method.replace("_", "-")), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
-            num += 1
-        # 神经网络方法绘图：csi_net与old_csi_net
-        y_csi, y_old_csi = self.cs_plt_get_net_data(self.data[str(ratio)], criteria)
-        plt.plot(self.snr_list, y_csi, label=r"RM-Net", marker=self.marker_list[-1], markerfacecolor="none", markersize=8, linewidth=2)
-        plt.plot(self.snr_list, y_old_csi, label=r"CsiNet", marker=self.marker_list[-2], markerfacecolor="none", markersize=8, linewidth=2)
-        img_criteria = self.trans_criteria(criteria)
-        description = {
-            "xlable": r"$\mathrm{SNR(dB)}$",
-            "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-            "title": "$\mathrm{{{}km/h}}$".format(velocity),
-            "loc": loc,
-            "use_gird": False,
-            "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr, img_format),
-            "criteria": img_criteria,
-        }
-        self.plt_description(plt, **description)
+        for ratio in ratio_list:
+            # 传统cs方法绘图
+            for method in self.__data[str(ratio)]["method"]:
+                y = self.cs_plt_get_cs_data(self.__data[str(ratio)][method], criteria)
+                plt.plot(self.snr_list, y, label=r"{}".format(method.replace("_", "-")), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+                num += 1
+            # 神经网络方法绘图：csi_net与old_csi_net
+            y_csi, y_old_csi = self.cs_plt_get_net_data(self.__data[str(ratio)], criteria)
+            plt.plot(self.snr_list, y_csi, label=r"RM-Net", marker=self.marker_list[-1], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_old_csi, label=r"CsiNet", marker=self.marker_list[-2], markerfacecolor="none", markersize=8, linewidth=2)
+            img_criteria = self.trans_criteria(criteria)
+            description = {
+                "xlable": r"$\mathrm{SNR(dB)}$",
+                "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
+                "title": "$\mathrm{{{}km/h}}$".format(velocity),
+                "loc": loc,
+                "use_gird": False,
+                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr, img_format),
+                "criteria": img_criteria,
+            }
+            self.plt_description(plt, **description)
 
     def cs_plot_multi_ratio(self, criteria, **kwargs):
         """
@@ -223,8 +228,7 @@ class Plot(object):
         在的不同缩率下，绘制不同cs方法的criteria随着snr的变化，同时对比csi_net与old_csi
         :return:
         """
-        ratio_list = kwargs.get("ratio_list")
-        ratio_list = ratio_list if ratio_list is not None else config.ratio_list
+        ratio_list = kwargs.get("ratio_list", config.ratio_list)
         velocity = kwargs.get("velocity", config.velocity)
         used_model = kwargs.get('cs_multi_ratio_model', None)
         loc = kwargs.get("loc", "best")
@@ -233,12 +237,12 @@ class Plot(object):
         for idx, ratio in enumerate(ratio_list):
             num = 0
             # 传统cs方法绘图
-            for method in self.data[str(ratio)]["method"]:
-                y = self.cs_plt_get_cs_data(self.data[str(ratio)][method], criteria)
+            for method in self.__data[str(ratio)]["method"]:
+                y = self.cs_plt_get_cs_data(self.__data[str(ratio)][method], criteria)
                 plt.plot(self.snr_list, y, linestyle=self.line_style[idx], label=r"1/{} {}".format(ratio, method.replace("_", "-")), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
                 num += 1
             # 神经网络方法绘图：csi_net与old_csi_net
-            y_csi, y_old_csi = self.cs_plt_get_net_data(self.data[str(ratio)], criteria)
+            y_csi, y_old_csi = self.cs_plt_get_net_data(self.__data[str(ratio)], criteria)
             plt.plot(self.snr_list, y_csi, linestyle=self.line_style[idx], label=r"1/{} RM-Net".format(ratio), marker=self.marker_list[-1], markerfacecolor="none", markersize=8, linewidth=2)
             plt.plot(self.snr_list, y_old_csi, linestyle=self.line_style[idx], label=r"1/{} CsiNet".format(ratio), marker=self.marker_list[-2], markerfacecolor="none", markersize=8, linewidth=2)
         img_criteria = self.trans_criteria(criteria)
@@ -370,7 +374,7 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
 
     # 神经网络：对每种信噪比下的模型单独进行绘图
     net_data_generator = LoadTestData(dtype="net", velocity=velocity, ratio_list=ratio_list)
-    my_plot.data = net_data_generator(model_snr=train_models)
+    my_plot.set_plot_data(net_data_generator(model_snr=train_models))
     for model_snr in train_models:
         my_plot.net_plot("NMSE", model_snr=model_snr, velocity=velocity, img_format=img_format)
         my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", velocity=velocity, img_format=img_format)
@@ -378,7 +382,7 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
         my_plot.net_plot("Capacity", model_snr=model_snr, velocity=velocity, img_format=img_format)
 
     # 神经网络：对于每种信噪比下的结果，选取对应信噪的模型进行绘图
-    my_plot.data = net_data_generator(model_snr=config.train_model_SNRs)
+    my_plot.set_plot_data(net_data_generator(model_snr=config.train_model_SNRs))
     my_plot.net_plot("NMSE", best_model=True, velocity=velocity, img_format=img_format)
     my_plot.net_plot("相似度", best_model=True, loc="lower right", velocity=velocity, img_format=img_format)
     my_plot.net_plot("time", best_model=True, velocity=velocity, img_format=img_format)
@@ -387,17 +391,14 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
     # 传统CS算法绘图，单压缩率
     cs_data_generator = LoadTestData(dtype="cs", velocity=velocity, ratio_list=ratio_list)
     for model_snr in train_models:
-        cs_data = cs_data_generator(model_snr=model_snr)
-        my_plot.data = cs_data
-        for ratio in config.ratio_list:
-            my_plot.cs_plot("NMSE", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
-            my_plot.cs_plot("相似度", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
-            my_plot.cs_plot("time", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
-            my_plot.cs_plot("Capacity", ratio=ratio, model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.set_plot_data(cs_data_generator(model_snr=model_snr))
+        my_plot.cs_plot("NMSE", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.cs_plot("相似度", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.cs_plot("time", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.cs_plot("Capacity", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
 
     # 传统CS算法绘图，多压缩率合并，与选择的网络模型进行比较
-    cs_data = cs_data_generator(model_snr=cs_multi_ratio_model)
-    my_plot.data = cs_data
+    my_plot.set_plot_data(cs_data_generator(model_snr=cs_multi_ratio_model))
     my_plot.cs_plot_multi_ratio("NMSE", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
     my_plot.cs_plot_multi_ratio("相似度", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
     my_plot.cs_plot_multi_ratio("time", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
