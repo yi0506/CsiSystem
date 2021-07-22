@@ -194,8 +194,8 @@ class Plot(object):
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
         plt.figure()
-        num = 0
         for ratio in ratio_list:
+            num = 0
             # 传统cs方法绘图
             for method in self.__data[str(ratio)]["method"]:
                 y = self.cs_plt_get_cs_data(self.__data[str(ratio)][method], criteria)
