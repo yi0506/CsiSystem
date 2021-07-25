@@ -174,8 +174,8 @@ class Plot(object):
         img_criteria = self.trans_criteria(criteria)
         description = {
             "xlable": r"$\mathrm{SNR(dB)}$",
-            "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-            "title": r"$\mathrm{{bps/Hz\/\/{}km/h}}$".format(velocity) if criteria == "Capacity" else r"$\mathrm{{{}km/h}}$".format(velocity),
+            "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
+            "title": r"$\mathrm{{{}km/h}}$".format(velocity),
             "loc": loc,
             "use_gird": False,
             "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.{3}".format(velocity, criteria, model_snr, img_format) if not best_model else "./images/{}km/{}-net-{}—best.{}".format(velocity, velocity, criteria, img_format),
@@ -208,8 +208,8 @@ class Plot(object):
             img_criteria = self.trans_criteria(criteria)
             description = {
                 "xlable": r"$\mathrm{SNR(dB)}$",
-                "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-                "title": r"$\mathrm{{bps/Hz\/\/{}km/h}}$".format(velocity) if criteria == "Capacity" else r"$\mathrm{{{}km/h}}$".format(velocity),
+                "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
+                "title": r"$\mathrm{{{}km/h}}$".format(velocity),
                 "loc": loc,
                 "use_gird": False,
                 "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr, img_format),
@@ -248,8 +248,8 @@ class Plot(object):
         img_criteria = self.trans_criteria(criteria)
         description = {
                 "xlable": r"$\mathrm{SNR(dB)}$",
-                "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-                "title": r"$\mathrm{{bps/Hz\/\/{}km/h}}$".format(velocity) if criteria == "Capacity" else "$\mathrm{{{}km/h}}$".format(velocity),
+                "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
+                "title": r"$\mathrm{{{}km/h}}$".format(velocity),
                 "loc": loc,
                 "use_gird": False,
                 "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.{4}".format(velocity, criteria, ratio_list, used_model, img_format),
