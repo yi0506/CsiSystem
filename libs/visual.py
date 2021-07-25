@@ -175,7 +175,7 @@ class Plot(object):
         description = {
             "xlable": r"$\mathrm{SNR(dB)}$",
             "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-            "title": "$\mathrm{{{}km/h}}$".format(velocity),
+            "title": r"$\mathrm{{bps/Hz\/\/{}km/h}}$".format(velocity) if criteria == "Capacity" else r"$\mathrm{{{}km/h}}$".format(velocity),
             "loc": loc,
             "use_gird": False,
             "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.{3}".format(velocity, criteria, model_snr, img_format) if not best_model else "./images/{}km/{}-net-{}—best.{}".format(velocity, velocity, criteria, img_format),
@@ -209,7 +209,7 @@ class Plot(object):
             description = {
                 "xlable": r"$\mathrm{SNR(dB)}$",
                 "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-                "title": "$\mathrm{{{}km/h}}$".format(velocity),
+                "title": r"$\mathrm{{bps/Hz\/\/{}km/h}}$".format(velocity) if criteria == "Capacity" else r"$\mathrm{{{}km/h}}$".format(velocity),
                 "loc": loc,
                 "use_gird": False,
                 "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr, img_format),
@@ -249,7 +249,7 @@ class Plot(object):
         description = {
                 "xlable": r"$\mathrm{SNR(dB)}$",
                 "ylable": r"$\mathrm{{{}}}$".format(img_criteria),
-                "title": "$\mathrm{{{}km/h}}$".format(velocity),
+                "title": r"$\mathrm{{bps/Hz\/\/{}km/h}}$".format(velocity) if criteria == "Capacity" else "$\mathrm{{{}km/h}}$".format(velocity),
                 "loc": loc,
                 "use_gird": False,
                 "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.{4}".format(velocity, criteria, ratio_list, used_model, img_format),
@@ -301,7 +301,7 @@ class Plot(object):
         fig.title(title, fontsize=15)
         if criteria == "NMSE":
             fig.yscale('log')
-        if criteria == r"\rho":
+        elif criteria == r"\rho":
             fig.yticks(ticks=self.y_ticks_similarity, fontproperties="Times New Roman")
         else:
             fig.yticks(fontproperties="Times New Roman")
@@ -369,7 +369,7 @@ class TimeForm(object, metaclass=type):
         print("{} time.json is done".format(self.velocity))
 
 
-def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_format, cs_multi_ratio_model):
+def main_plot(train_models, velocity, ratio_list, plot_ratio_list, cs_multi_ratio_list, img_format, cs_multi_ratio_model):
     """绘制图像"""
     my_plot = Plot()
 
@@ -377,10 +377,10 @@ def main_plot(train_models, velocity, ratio_list, cs_multi_ratio_list, img_forma
     net_data_generator = LoadTestData(dtype="net", velocity=velocity, ratio_list=ratio_list)
     my_plot.set_plot_data(net_data_generator(model_snr=train_models))
     for model_snr in train_models:
-        my_plot.net_plot("NMSE", model_snr=model_snr, velocity=velocity, img_format=img_format)
-        my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", velocity=velocity, img_format=img_format)
-        my_plot.net_plot("time", model_snr=model_snr, velocity=velocity, img_format=img_format)
-        my_plot.net_plot("Capacity", model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.net_plot("NMSE", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
+        my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
+        my_plot.net_plot("time", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
+        my_plot.net_plot("Capacity", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
 
     # 神经网络：对于每种信噪比下的结果，选取对应信噪的模型进行绘图
     my_plot.set_plot_data(net_data_generator(model_snr=config.train_model_SNRs))

@@ -113,7 +113,7 @@ class BaseCSIFrame(object):
         """
         if cs_multi_ratio_list is None:
             cs_multi_ratio_list = [2, 8]
-        main_plot(train_models=train_models, velocity=velocity, cs_multi_ratio_list=cs_multi_ratio_list,
+        main_plot(train_models=train_models, velocity=velocity, plot_ratio_list=self.ratio_list, cs_multi_ratio_list=cs_multi_ratio_list,
                   ratio_list=self.ratio_list, cs_multi_ratio_model=cs_multi_ratio_model, img_format=img_format)
         main_form(velocity=velocity, ratio_list=self.ratio_list, model=form_model)
 
