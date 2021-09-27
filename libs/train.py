@@ -20,6 +20,7 @@ def train_model_merged(epoch, snr, ratio, velocity):
     data_loader = data_load(True, velocity)
     init_loss = 1
     for i in range(epoch):
+        torch.cuda.empty_cache()  # 清空缓存
         bar = tqdm(data_loader)
         for idx, data in enumerate(bar):
             optimizer.zero_grad()  # 梯度置为零
@@ -89,7 +90,6 @@ def train_model_separated(epoch, snr, ratio, velocity):
 
 def concurrent_train(epoch, model_list, ratio, velocity, multi=True):
     """使用多进程训练模型"""
-    torch.cuda.empty_cache()  # 清空缓存
     if multi:
         pool = multiprocessing.Pool(6)
         for snr in model_list:
