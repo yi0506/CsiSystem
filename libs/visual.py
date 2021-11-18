@@ -7,16 +7,14 @@ import pickle
 import os
 import json
 
-from libs.train import rec_mkdir
 from libs import config
-
 
 # matplotlib字体全局设置
 PREFERENCE = {
-        "font.family": 'serif',
-        "mathtext.fontset": 'stix',
-        "font.serif": ['SimSun'],
-        "axes.unicode_minus": False
+    "font.family": 'serif',
+    "mathtext.fontset": 'stix',
+    "font.serif": ['SimSun'],
+    "axes.unicode_minus": False
 }
 rcParams.update(PREFERENCE)
 
@@ -69,12 +67,14 @@ class LoadTestData(object):
         for snr in model_snr:
             temp_csi = dict()
             for rate in self.ratio_list:
-                data = pickle.load(open("./test_result/{}km/csi_net/csi_net_{}_{}dB.pkl".format(self.velocity, rate, snr), "rb"))
+                data = pickle.load(
+                    open("./test_result/{}km/csi_net/csi_net_{}_{}dB.pkl".format(self.velocity, rate, snr), "rb"))
                 temp_csi[str(rate)] = data
             net_dict["{}dB".format(snr)] = temp_csi
         # 读取old_csi_net测试结果
         for rate in self.ratio_list:
-            old_csi_data = pickle.load(open("./test_result/{}km/old_csi/old_csi_{}.pkl".format(self.velocity, rate), "rb"))
+            old_csi_data = pickle.load(
+                open("./test_result/{}km/old_csi/old_csi_{}.pkl".format(self.velocity, rate), "rb"))
             old_csi_dict[str(rate)] = old_csi_data
         y_dict["seq2seq"] = net_dict
         y_dict["old_csi"] = old_csi_dict
@@ -87,11 +87,10 @@ class LoadTestData(object):
         y_dict: {"2": y_one_ratio, "4": y_one_ratio, .....,}
         y_one_ratio: {
                         "dct_idct": {"0dB":{similarity, time, loss, capacity}, "5dB":{},...},
-                         "dct_dct_omp":{}, ....,
+                        "dct_dct_omp":{}, ....,
                         "method":["dct_idct", "dct_omp",...],
                         "net":{"0dB":{loss、similarity、time}, "5dB":{}, ...}
                         "old_csi":{"0dB":{loss、similarity、time}, "5dB":{}, ...}
-                        "snr_model": "{}dB".format(snr_model)
                     }
         """
         model_snr = kwargs.get('model_snr')
@@ -106,13 +105,15 @@ class LoadTestData(object):
                 file_path = dir_path + file_name
                 if os.path.isfile(file_path):
                     data = pickle.load(open(file_path, "rb"))  # 一种CS方法的仿真结果
-                    y_one_ratio[file_name[:-6].upper()] = data
-                    method_list.append(file_name[:-6].upper())
+                    y_one_ratio[file_name[:-4].upper()] = data
+                    method_list.append(file_name[:-4].upper())
             y_one_ratio["method"] = method_list
             # 加载csi_net测试结果
-            net_data = pickle.load(open("./test_result/{}km/csi_net/csi_net_{}_{}dB.pkl".format(self.velocity, Fi_ratio, model_snr), "rb"))
+            net_data = pickle.load(
+                open("./test_result/{}km/csi_net/csi_net_{}_{}dB.pkl".format(self.velocity, Fi_ratio, model_snr), "rb"))
             # 加载old_csi_net测试结果
-            old_csi_data = pickle.load(open("./test_result/{}km/old_csi/old_csi_{}.pkl".format(self.velocity, Fi_ratio), "rb"))
+            old_csi_data = pickle.load(
+                open("./test_result/{}km/old_csi/old_csi_{}.pkl".format(self.velocity, Fi_ratio), "rb"))
             y_one_ratio["net"] = net_data
             y_one_ratio["old_csi"] = old_csi_data
             y_dict[str(Fi_ratio)] = y_one_ratio
@@ -145,7 +146,7 @@ class Plot(object):
 
         """
         self.__data = data
-    
+
     def set_plot_data(self, data):
         """设置画图的数据来源"""
         self.__data = data
@@ -159,7 +160,7 @@ class Plot(object):
         """
         model_snr = kwargs.get("model_snr", None)
         best_model = kwargs.get("best_model", False)
-        velocity = kwargs.get("velocity", config.velocity)
+        velocity = kwargs.get("velocity")
         plot_ratio_list = kwargs.get("plot_ratio_list", config.ratio_list)  # 选择将哪个压缩比的线画上去
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
@@ -168,17 +169,23 @@ class Plot(object):
         for ratio in plot_ratio_list:
             y, y_old = self.net_plt_get_net_data(self.__data, criteria, best_model, model_snr, ratio)
             # 神经网络在不同压缩率下绘图
-            plt.plot(self.snr_list, y, label=r"1/{} RM-Net".format(plot_ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
-            plt.plot(self.snr_list, y_old, linestyle=self.line_style[1], label=r"1/{} CsiNet".format(plot_ratio_list[num]), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y, label=r"1/{} RM-Net".format(plot_ratio_list[num]), marker=self.marker_list[num],
+                     markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_old, linestyle=self.line_style[1],
+                     label=r"1/{} CsiNet".format(plot_ratio_list[num]), marker=self.marker_list[num],
+                     markerfacecolor="none", markersize=8, linewidth=2)
             num += 1
         img_criteria = self.trans_criteria(criteria)
         description = {
             "xlable": r"$\mathrm{SNR(dB)}$",
-            "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
+            "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(
+                img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
             "title": r"$\mathrm{{{}km/h}}$".format(velocity),
             "loc": loc,
             "use_gird": False,
-            "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.{3}".format(velocity, criteria, model_snr, img_format) if not best_model else "./images/{}km/{}-net-{}—best.{}".format(velocity, velocity, criteria, img_format),
+            "img_name": "./images/{0}km/{0}-net-{1}—{2}dB.{3}".format(velocity, criteria, model_snr,
+                                                                      img_format) if not best_model else "./images/{}km/{}-net-{}—best.{}".format(
+                velocity, velocity, criteria, img_format),
             "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
@@ -190,7 +197,7 @@ class Plot(object):
         """
         ratio_list = kwargs.get("ratio_list", config.ratio_list)
         model_snr = kwargs.get("model_snr", None)
-        velocity = kwargs.get("velocity", config.velocity)
+        velocity = kwargs.get("velocity")
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
         plt.figure()
@@ -199,20 +206,25 @@ class Plot(object):
             # 传统cs方法绘图
             for method in self.__data[str(ratio)]["method"]:
                 y = self.cs_plt_get_cs_data(self.__data[str(ratio)][method], criteria)
-                plt.plot(self.snr_list, y, label=r"{}".format(method.replace("_", "-")), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+                plt.plot(self.snr_list, y, label=r"{}".format(method.replace("_", "-")), marker=self.marker_list[num],
+                         markerfacecolor="none", markersize=8, linewidth=2)
                 num += 1
             # 神经网络方法绘图：csi_net与old_csi_net
             y_csi, y_old_csi = self.cs_plt_get_net_data(self.__data[str(ratio)], criteria)
-            plt.plot(self.snr_list, y_csi, label=r"RM-Net", marker=self.marker_list[-1], markerfacecolor="none", markersize=8, linewidth=2)
-            plt.plot(self.snr_list, y_old_csi, label=r"CsiNet", marker=self.marker_list[-2], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_csi, label=r"RM-Net", marker=self.marker_list[-1], markerfacecolor="none",
+                     markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_old_csi, label=r"CsiNet", marker=self.marker_list[-2], markerfacecolor="none",
+                     markersize=8, linewidth=2)
             img_criteria = self.trans_criteria(criteria)
             description = {
                 "xlable": r"$\mathrm{SNR(dB)}$",
-                "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
+                "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(
+                    img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
                 "title": r"$\mathrm{{{}km/h}}$".format(velocity),
                 "loc": loc,
                 "use_gird": False,
-                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr, img_format),
+                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB.{4}".format(velocity, criteria, ratio, model_snr,
+                                                                                 img_format),
                 "criteria": img_criteria,
             }
             self.plt_description(plt, **description)
@@ -229,7 +241,7 @@ class Plot(object):
         :return:
         """
         ratio_list = kwargs.get("ratio_list", config.ratio_list)
-        velocity = kwargs.get("velocity", config.velocity)
+        velocity = kwargs.get("velocity")
         used_model = kwargs.get('cs_multi_ratio_model', None)
         loc = kwargs.get("loc", "best")
         img_format = kwargs.get("img_format", "svg")
@@ -239,21 +251,27 @@ class Plot(object):
             # 传统cs方法绘图
             for method in self.__data[str(ratio)]["method"]:
                 y = self.cs_plt_get_cs_data(self.__data[str(ratio)][method], criteria)
-                plt.plot(self.snr_list, y, linestyle=self.line_style[idx], label=r"1/{} {}".format(ratio, method.replace("_", "-")), marker=self.marker_list[num], markerfacecolor="none", markersize=8, linewidth=2)
+                plt.plot(self.snr_list, y, linestyle=self.line_style[idx],
+                         label=r"1/{} {}".format(ratio, method.replace("_", "-")), marker=self.marker_list[num],
+                         markerfacecolor="none", markersize=8, linewidth=2)
                 num += 1
             # 神经网络方法绘图：csi_net与old_csi_net
             y_csi, y_old_csi = self.cs_plt_get_net_data(self.__data[str(ratio)], criteria)
-            plt.plot(self.snr_list, y_csi, linestyle=self.line_style[idx], label=r"1/{} RM-Net".format(ratio), marker=self.marker_list[-1], markerfacecolor="none", markersize=8, linewidth=2)
-            plt.plot(self.snr_list, y_old_csi, linestyle=self.line_style[idx], label=r"1/{} CsiNet".format(ratio), marker=self.marker_list[-2], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_csi, linestyle=self.line_style[idx], label=r"1/{} RM-Net".format(ratio),
+                     marker=self.marker_list[-1], markerfacecolor="none", markersize=8, linewidth=2)
+            plt.plot(self.snr_list, y_old_csi, linestyle=self.line_style[idx], label=r"1/{} CsiNet".format(ratio),
+                     marker=self.marker_list[-2], markerfacecolor="none", markersize=8, linewidth=2)
         img_criteria = self.trans_criteria(criteria)
         description = {
-                "xlable": r"$\mathrm{SNR(dB)}$",
-                "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
-                "title": r"$\mathrm{{{}km/h}}$".format(velocity),
-                "loc": loc,
-                "use_gird": False,
-                "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.{4}".format(velocity, criteria, ratio_list, used_model, img_format),
-                "criteria": img_criteria,
+            "xlable": r"$\mathrm{SNR(dB)}$",
+            "ylable": r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(
+                img_criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(img_criteria),
+            "title": r"$\mathrm{{{}km/h}}$".format(velocity),
+            "loc": loc,
+            "use_gird": False,
+            "img_name": "./images/{0}km/{0}-cs-snr-{1}-{2}-{3}dB模型.{4}".format(velocity, criteria, ratio_list,
+                                                                               used_model, img_format),
+            "criteria": img_criteria,
         }
         self.plt_description(plt, **description)
 
@@ -335,6 +353,7 @@ class Plot(object):
 
 class TimeForm(object, metaclass=type):
     """生成系统耗时的Json数据文件"""
+
     def __init__(self, data, velocity, ratio_list):
         self.data = data
         self.velocity = velocity
@@ -369,7 +388,8 @@ class TimeForm(object, metaclass=type):
         print("{} time.json is done".format(self.velocity))
 
 
-def main_plot(train_models, velocity, ratio_list, plot_ratio_list, cs_multi_ratio_list, img_format, cs_multi_ratio_model):
+def main_plot(train_models, velocity, ratio_list, plot_ratio_list, cs_multi_ratio_list, img_format,
+              cs_multi_ratio_model):
     """绘制图像"""
     my_plot = Plot()
 
@@ -377,13 +397,17 @@ def main_plot(train_models, velocity, ratio_list, plot_ratio_list, cs_multi_rati
     net_data_generator = LoadTestData(dtype="net", velocity=velocity, ratio_list=ratio_list)
     my_plot.set_plot_data(net_data_generator(model_snr=train_models))
     for model_snr in train_models:
-        my_plot.net_plot("NMSE", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
-        my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
-        my_plot.net_plot("time", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
-        my_plot.net_plot("Capacity", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity, img_format=img_format)
+        my_plot.net_plot("NMSE", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity,
+                         img_format=img_format)
+        my_plot.net_plot("相似度", model_snr=model_snr, loc="lower right", plot_ratio_list=plot_ratio_list,
+                         velocity=velocity, img_format=img_format)
+        my_plot.net_plot("time", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity,
+                         img_format=img_format)
+        my_plot.net_plot("Capacity", model_snr=model_snr, plot_ratio_list=plot_ratio_list, velocity=velocity,
+                         img_format=img_format)
 
     # 神经网络：对于每种信噪比下的结果，选取对应信噪的模型进行绘图
-    my_plot.set_plot_data(net_data_generator(model_snr=config.train_model_SNRs))
+    my_plot.set_plot_data(net_data_generator(model_snr=config.model_SNRs))
     my_plot.net_plot("NMSE", best_model=True, velocity=velocity, img_format=img_format)
     my_plot.net_plot("相似度", best_model=True, loc="lower right", velocity=velocity, img_format=img_format)
     my_plot.net_plot("time", best_model=True, velocity=velocity, img_format=img_format)
@@ -396,14 +420,19 @@ def main_plot(train_models, velocity, ratio_list, plot_ratio_list, cs_multi_rati
         my_plot.cs_plot("NMSE", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
         my_plot.cs_plot("相似度", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
         my_plot.cs_plot("time", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
-        my_plot.cs_plot("Capacity", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity, img_format=img_format)
+        my_plot.cs_plot("Capacity", ratio_list=ratio_list, model_snr=model_snr, velocity=velocity,
+                        img_format=img_format)
 
     # 传统CS算法绘图，多压缩率合并，与选择的网络模型进行比较
     my_plot.set_plot_data(cs_data_generator(model_snr=cs_multi_ratio_model))
-    my_plot.cs_plot_multi_ratio("NMSE", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
-    my_plot.cs_plot_multi_ratio("相似度", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
-    my_plot.cs_plot_multi_ratio("time", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
-    my_plot.cs_plot_multi_ratio("Capacity", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model, img_format=img_format)
+    my_plot.cs_plot_multi_ratio("NMSE", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model,
+                                img_format=img_format)
+    my_plot.cs_plot_multi_ratio("相似度", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model,
+                                img_format=img_format)
+    my_plot.cs_plot_multi_ratio("time", ratio_list=cs_multi_ratio_list, velocity=velocity, model=cs_multi_ratio_model,
+                                img_format=img_format)
+    my_plot.cs_plot_multi_ratio("Capacity", ratio_list=cs_multi_ratio_list, velocity=velocity,
+                                model=cs_multi_ratio_model, img_format=img_format)
 
 
 def main_form(velocity, ratio_list, model):

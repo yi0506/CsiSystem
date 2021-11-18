@@ -4,113 +4,90 @@ import torch
 from tqdm import tqdm
 import h5py
 import numpy as np
-import pickle
-import os
 
 from libs import config
 
 
 class CsiDataset(Dataset):
-    """获取CSI反馈的信道数据集"""
-    def __init__(self, is_train, velocity):
-        self.is_train = is_train  # 是否取训练集
-        self.velocity = velocity  # 选择不同速度的数据集
-        self.BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    """CSI反馈的信道数据集"""
 
-    def get_data(self, velocity):
-        dataset = "test_10000_32_{}_H.mat".format(velocity) if self.is_train else r"test_1000_32_{}_H.mat".format(velocity)
-        file_path = r"{}/data/matlab/{}".format(self.BASE_DIR, dataset)
-        return h5py.File(file_path, "r")["save_H"]
+    FILE_PATH = None  # 数据集的路径
 
-    def collate_fn(self, batch):
-        batch_size = config.train_batch_size if self.is_train is True else config.test_batch_size
-        return torch.FloatTensor(batch).view(batch_size, -1)
+    class Configuration:
+        num_workers = 6  # 读取数据的线程数
+        drop_last = False  # 丢弃最后一个不足batch size的数据集
+        shuffle = True  # 是否打乱数据集
+        collate_fn = None  # 对一个data_loader中batch size个数据的进行操作的函数指针
+        batch_size = 1  # 一个读取的数据量
 
-    def __getitem__(self, index):
-        return self.get_data(self.velocity)[index]
+    def get_data(self):
+        return h5py.File(self.FILE_PATH, "r")["save_H_real"], h5py.File(self.FILE_PATH, "r")["save_H_img"]
+
+    def get_data_loader(self, **settings):
+        """获取data_loader"""
+        return DataLoader(dataset=self, 
+                          batch_size=self.Configuration.batch_size, 
+                          num_workers=self.Configuration.num_workers, 
+                          collate_fn=self.Configuration.collate_fn, 
+                          drop_last=self.Configuration.drop_last, 
+                          shuffle=self.Configuration.shuffle, 
+                          **settings)
+
+    def __getitem__(self, idx):
+        real, img = self.get_data()
+        # 输入数据实shape为 [2, 32, 32]
+        return np.concatenate((np.expand_dims(real[idx], axis=0), np.expand_dims(img[idx], axis=0)), axis=0)
 
     def __len__(self):
-        return self.get_data(self.velocity).shape[0]
-
-    @property
-    def size(self):
-        """数据集的尺寸"""
-        return self.data.shape
+        return self.get_data()[0].shape[0]
 
 
-def data_load(is_train, velocity):
-    """数据集生成器"""
-    batch_size = config.train_batch_size if is_train is True else config.test_batch_size
-    dataset = CsiDataset(is_train, velocity)
-    return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=6, drop_last=True, collate_fn=dataset.collate_fn, shuffle=config.shuffle)
+class CSDataset(CsiDataset):
+    """压缩感知数据集"""
+
+    def __init__(self, velocity):
+        self.FILE_PATH = r"{}/data/matlab/test_100_32_{}_H.mat".format(config.BASE_DIR, velocity)
 
 
-def data_generator(k=100, num=1000):
-    """生成在角度域稀疏系数为k的data"""
-    sparse_A = pickle.load(open("../data/dct_32.pkl", "rb"))  # 稀疏基 [32*32, 32*32]
-    dim = sparse_A.shape[0]
-    data_list = list()
-    index_list = list()
-    for i in range(num):
-        # 生成一个符合稀疏基稀疏之后的稀疏系数
-        s_coefficient = np.random.normal(0, 0.2, (dim, 1))
-        index_k = np.random.choice(k * 3, (k, 1), replace=False)
-        _temp = np.random.normal(0, 2, (k, 1))
-        s_coefficient[index_k.flatten()] = _temp
+class NetDataset(CsiDataset):
+    """神经网络数据集"""
 
-        # 通过稀疏系数，反求出data,保存生成的data
-        data = np.matmul(sparse_A.T, s_coefficient)
-        data_list.append(data)
-        index_list.append(index_k)
-    dataset = np.array(data_list)
-
-    # 保存数据
-    f = h5py.File("./data/dataset_{}.h5".format(num), "w")
-    f.create_dataset("H", data=dataset)
-    f.create_dataset("index_k", data=index_list)
-    f.close()
+    def __init__(self, is_train) -> None:
+        self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
 
 
-def save_dct_sparse_base():
-    """获得DCT稀疏基"""
-    x = np.random.randn(32 * 32, 1)
-    dim = x.shape[0]
-    A = np.zeros((dim, dim))  # A:稀疏基矩阵
+class RMNetDataset(NetDataset):
+    """RM Net 数据集"""
 
-    # 确定稀疏基矩阵系数
-    for i in range(dim):
-        for j in range(dim):
-            if i == 0:
-                N = np.sqrt(1 / dim)  # 系数N:保证A为正交矩阵
-            else:
-                N = np.sqrt(2 / dim)
-            A[i][j] = N * np.cos(np.pi * (j + 0.5) * i / dim)
-            print("第{}行，第{}列".format(i, j))
-    # 保存稀疏基
-    pickle.dump(A, open("../data/dct_32.pkl", "wb"))
+    def __init__(self, is_train, velocity) -> None:
+        """
+        :param is_train: 是否取训练集
+        :param velocity: 速度
+        """
+        super().__init__(is_train)
+        dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
+        self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
+        self.Configuration.collate_fn = self.collate_fn
+
+    def collate_fn(self, batch):
+        return torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
 
 
-def save_fft_sparse_base():
-    """
-    获得FFT稀疏基
+class CSINetDataset(NetDataset):
+    """CSI Net 数据集"""
 
-    X[k] = $\sum_{n=0}^(N-1)x[n]*exp(-j*2*pi*k*n/N)$
-    k: frequency index
-    N: length of complex sinusoid in samples
-    n: 当前样本
-    """
-    x = np.random.randn(32 * 32, 1)
-    N = x.shape[0]
-    n = np.arange(N).reshape(1, N)
-    m = n.T * n / N  # [N, 1] * [1, N] = [N, N]
-    S = np.exp(-1j * 2 * np.pi * m)
-
-    # 保存稀疏基
-    pickle.dump(S, open("../data/fft_32.pkl", "wb"))
+    def __init__(self, is_train, velocity) -> None:
+        """
+        :param is_train: 是否取训练集
+        :param velocity: 速度
+        """
+        super().__init__(is_train)
+        dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
+        self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
 
 
 if __name__ == '__main__':
-    data_loader = data_load()
+    data_loader = RMNetDataset(True, 50).get_data_loader()
     print(len(data_loader))
     for i in tqdm(data_loader):
         print(i.size())
