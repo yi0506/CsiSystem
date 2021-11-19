@@ -1,12 +1,8 @@
 """csi网络模型"""
-import torch
-from torch._C import device, strided
 import torch.nn as nn
 from torchsummary import summary
 
 import config
-from demo.FFT_demo import S
-from libs.csi_dataset import RMNetDataset
 from utils import gs_noise, res_unit, net_normalize
 
 
@@ -19,6 +15,7 @@ class RMNetConfiguration(object):
     stride = 1
     padding = 1
     sys_capacity_ratio = 60  # 系统容量倍率（可视化时使用）
+    network_name = "RMNet"  # 网络名称
 
 
 class RMNet(nn.Module):

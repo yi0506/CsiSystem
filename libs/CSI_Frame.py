@@ -1,10 +1,10 @@
 """网络模型与CS模块各项功能的封装"""
 import pickle
 import torch
-from torch.utils.data import dataloader
+from libs.RM_net import RMNetConfiguration
+from libs.CSI_net import CSINetConfiguration
 
 from utils import ratio_loop_wrapper, model_snr_loop_wrapper, v_loop_wrapper
-from visual import main_plot, main_form
 import config
 from RM_net import RMNet
 from CSI_net import CsiNet
@@ -12,29 +12,7 @@ from utils import rec_mkdir, SingletonType, train, test
 from csi_dataset import CSDataset, RMNetDataset, CSINetDataset
 
 
-class High_Speed_CSI(metaclass=SingletonType):
-
-    def visual_display(self, velocity, train_models=config.model_SNRs, cs_multi_ratio_model=None, cs_multi_ratio_list=None, form_model=None, img_format="svg"):
-        """
-        测试结果进行可视化展示
-
-        Parameter:
-
-            train_models -> 选择进行绘图的模型
-            velocity -> 选择的速度，velocity不需要传递，由MyCsi实例对象的v_list属性决定
-            cs_multi_ratio_model -> 传统CS算法绘图，多压缩率合并，选择何种的网络模型进行比较，默认选择NonedB模型
-            cs_multi_ratio_list -> 传统CS算法绘图，多压缩率合并，选择何种的网络模型进行比较，默认选择NonedB模型
-
-        """
-        if cs_multi_ratio_list is None:
-            cs_multi_ratio_list = [2, 8]
-        main_plot(train_models=train_models, velocity=velocity, plot_ratio_list=self.ratio_list, cs_multi_ratio_list=cs_multi_ratio_list,
-                  ratio_list=self.ratio_list, cs_multi_ratio_model=cs_multi_ratio_model, img_format=img_format)
-        main_form(velocity=velocity,
-                  ratio_list=self.ratio_list, model=form_model)
-
-
-class High_Speed_Net_CSI(High_Speed_CSI):
+class High_Speed_Net_CSI(metaclass=SingletonType):
     """通用神经网络 CSI执行"""
     CSI_MODEL = None  # 执行CSI的模型
     CSI_DATASET = None  # 执行CSI的模型的数据集
@@ -56,7 +34,7 @@ class High_Speed_Net_CSI(High_Speed_CSI):
         self.net_train(ratio, v, model_snr, epoch)
 
     def net_test(self, ratio, v, model_snr, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
-        """在不同压缩率下，测试某个信噪比下模型的效果"""
+        """在某个压缩率，某个速度下，测试不同信噪比下模型的效果"""
         model = self.CSI_MODEL(ratio)
         model_path = "./model/{}km/{}/ratio_{}/{}_{}dB.ckpt".format(v, self.NETWORK_NAME, ratio, self.NETWORK_NAME, model_snr)
         model.load_state_dict(torch.load(model_path), strict=False)
@@ -67,7 +45,7 @@ class High_Speed_Net_CSI(High_Speed_CSI):
             result_dict["{}dB".format(snr)] = test(model, data_loader, snr, info)
         del model
         if save_ret:
-            save_path = "./test_result/{}km/csi_net/csi_net_{}_{}dB.pkl".format(v, ratio, model_snr) if not save_path else save_path
+            save_path = "./test_result/{}km/{}/ratio_{}/{}_{}dB.pkl".format(v, self.NETWORK_NAME, ratio, self.NETWORK_NAME, model_snr) if not save_path else save_path
             rec_mkdir(save_path)
             pickle.dump(result_dict, open(save_path, "wb"))
 
@@ -83,17 +61,17 @@ class RMNet_CSI(High_Speed_Net_CSI):
     """RM_net CSI执行"""
     CSI_MODEL = RMNet
     CSI_DATASET = RMNetDataset
-    NETWORK_NAME = "RMNet"
+    NETWORK_NAME = RMNetConfiguration.network_name
 
 
-class CSINet_CSI(High_Speed_CSI):
+class CSINet_CSI(High_Speed_Net_CSI):
     """csi net 执行CSI"""
     CSI_MODEL = CsiNet
     CSI_DATASET = CSINetDataset
-    NETWORK_NAME = "CSINet"
+    NETWORK_NAME = CSINetConfiguration.network_name
 
 
-class CS_CSI(High_Speed_CSI):
+class CS_CSI(metaclass=SingletonType):
     """CS 执行CSI"""
     RESTORE_DIC = dict()
     CS_TP = list()
@@ -126,7 +104,7 @@ class CS_CSI(High_Speed_CSI):
                 
             if save_ret:
                 # 保存测试结果到文件中
-                save_path = "./test_result/{}km/cs/ratio_{}/result/{}_{}.pkl".format(v, ratio, sparse, restore) if not save_path else save_path
+                save_path = "./test_result/{}km/cs/ratio_{}/result/{}-{}.pkl".format(v, ratio, sparse, restore) if not save_path else save_path
                 rec_mkdir(save_path)
                 with open(save_path, "wb") as f:
                     pickle.dump(result_dict, f)

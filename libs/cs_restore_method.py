@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import pickle
 
-import config
 
 def OMP(y, Beta, k):
     """

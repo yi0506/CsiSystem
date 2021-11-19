@@ -135,34 +135,34 @@ def train(model, epoch, save_path, data_loader, model_snr, info):
 
 def model_snr_loop_wrapper(func):
     """模型加入不同信噪比噪声的实例方法的装饰器"""
-    def call_func(obj, **kwargs):
+    def call_func(obj, *args, **kwargs):
         # obj 为该实例对象
         model_snrs = kwargs.get('model_snrs', config.model_SNRs)
         kwargs.pop('snr_list')
         for model_snr in model_snrs:
-            func(obj, snr=model_snr, **kwargs)
+            func(obj, model_snr=model_snr, *args, **kwargs)
     return call_func
 
 
 def ratio_loop_wrapper(func):
     """执行不同压缩率的实例方法的装饰器"""
-    def call_func(obj, **kwargs):
+    def call_func(obj, *args, **kwargs):
         # obj 为该实例对象
         r_list = kwargs.get('r_list', config.ratio_list)
         kwargs.pop('r_list')
         for ratio in r_list:
-            func(obj, ratio=ratio, **kwargs)
+            func(obj, ratio=ratio, *args, **kwargs)
     return call_func
     
     
 def v_loop_wrapper(func):
     """执行不同速度的实例方法的装饰器"""
-    def call_func(obj, **kwargs):
+    def call_func(obj, *args, **kwargs):
         # obj 为该实例对象
         velocity = kwargs.get('v_list', config.velocity_list)
         kwargs.pop('v_list')
         for v in velocity:
-            func(obj, velocity=v, **kwargs)
+            func(obj, v=v, *args, **kwargs)
     return call_func
     
     

@@ -16,6 +16,7 @@ class CSINetConfiguration(object):
     kerner_size = 3
     stride = 1
     padding = 1
+    network_name = "CSINet"  # 网络名称
 
 
 class CsiNet(nn.Module):
