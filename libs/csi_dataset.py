@@ -14,7 +14,7 @@ class CsiDataset(Dataset):
     FILE_PATH = None  # 数据集的路径
 
     class Configuration:
-        num_workers = 6  # 读取数据的线程数
+        num_workers = 0  # 读取数据的线程数
         drop_last = False  # 丢弃最后一个不足batch size的数据集
         shuffle = True  # 是否打乱数据集
         collate_fn = None  # 对一个data_loader中batch size个数据的进行操作的函数指针

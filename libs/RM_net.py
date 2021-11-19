@@ -39,14 +39,18 @@ class Encoder(nn.Module):
     def __init__(self, ratio):
         super(Encoder, self).__init__()
         self.ratio = ratio
+        self.conv2d_1 = nn.Conv2d(RMNetConfiguration.channel_num, 8, kernel_size=RMNetConfiguration.kerner_size,
+                                  stride=RMNetConfiguration.stride, padding=RMNetConfiguration.padding)
         self.group_conv_combo_1 = nn.Sequential(
-            Conv2DWrapper(RMNetConfiguration.channel_num, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 2),
-            Conv2DWrapper(8, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4)
+            Conv2DWrapper(8, 16, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4),
+            Conv2DWrapper(16, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4),
         )
         self.group_conv_combo_2 = nn.Sequential(
-            Conv2DWrapper(8, 4, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4),
-            Conv2DWrapper(4, 2, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 2)
+            Conv2DWrapper(8, 16, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4),
+            Conv2DWrapper(16, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 2)
         )
+        self.conv2d_2 = nn.Conv2d(8, RMNetConfiguration.channel_num, kernel_size=RMNetConfiguration.kerner_size,
+                                stride=RMNetConfiguration.stride, padding=RMNetConfiguration.padding)
         self.fc_compress = LinearWrapper(RMNetConfiguration.data_length, RMNetConfiguration.data_length // self.ratio)
 
     def forward(self, input_):
@@ -58,9 +62,12 @@ class Encoder(nn.Module):
         # 标准化
         x = net_normalize(input_)  # [batch_size, 2048]
         x = x.view(-1, RMNetConfiguration.channel_num, RMNetConfiguration.maxtrix_len, RMNetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        # 卷积
+        x = self.conv2d_1(x)  # [batch_size, 8, 32, 32]
         # 分组卷积
         x = res_unit(self.group_conv_combo_1, x)  # [batch_size, 8, 32, 32]
-        x = res_unit(self.group_conv_combo_2, x)  # [batch_size, 2 32, 32]
+        x = res_unit(self.group_conv_combo_2, x)  # [batch_size, 8, 32, 32]
+        x = self.conv2d_2(x)  # [batch_size, 2, 32, 32]
         x = x.view(-1, RMNetConfiguration.data_length)  # [batch_size, 2048]
         # 全连接
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
@@ -74,42 +81,48 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.ratio = ratio
         self.restore_fc = LinearWrapper(RMNetConfiguration.data_length // ratio,  RMNetConfiguration.data_length)
+        self.conv2d_1 = nn.Conv2d(RMNetConfiguration.channel_num, 8, RMNetConfiguration.kerner_size,
+                                  RMNetConfiguration.stride, RMNetConfiguration.padding)
         self.deep_conv_combo = nn.Sequential(
-            Conv2DWrapper(RMNetConfiguration.channel_num, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 2),
-            Conv2DWrapper(8, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 8)
+            Conv2DWrapper(8, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4),
+            Conv2DWrapper(8, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4)
         )
         self.group_conv_combo = nn.Sequential(
-            Conv2DWrapper(8, 32, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 4),
-            Conv2DWrapper(32, 32, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 16)
+            Conv2DWrapper(8, 32, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 8),
+            Conv2DWrapper(32, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding, 8)
         )
         self.deep_separate_combo_1 = nn.Sequential(
-            DeepSeparateConv2DWrapper(32, 128, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding),
-            Conv2DWrapper(128, 32, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding)
+            DeepSeparateConv2DWrapper(8, 64, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding),
+            Conv2DWrapper(64, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding)
         )
         self.deep_separate_combo_2 = nn.Sequential(
-            DeepSeparateConv2DWrapper(32, 128, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding),
-            Conv2DWrapper(128, 2, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding)
+            DeepSeparateConv2DWrapper(8, 64, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding),
+            Conv2DWrapper(64, 8, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding)
         )
+        self.conv2d_2 = nn.Conv2d(8, 2, RMNetConfiguration.kerner_size, RMNetConfiguration.stride, RMNetConfiguration.padding)
 
-    def forward(self, de_noise):
+    def forward(self, x):
         """
         数据解压缩：
         残差（分组卷积） ----> 残差（深度可分离卷积）-----> 残差（深度可分离卷积） -----> 全连接恢复
-        :param de_noise: [batch_size, 32*32]
+        :param x: [batch_size, 32*32]
         :return: [batch_size, 32*32]
         """
         # 标准化
-        x = net_normalize(de_noise)  # [batch_size, 2048/ratio]
+        x = net_normalize(x)  # [batch_size, 2048/ratio]
         # 全连接
         x = self.restore_fc(x)  # [batch_size, 2048]
         x = x.view(-1, RMNetConfiguration.channel_num, RMNetConfiguration.maxtrix_len, RMNetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        # 卷积
+        x = self.conv2d_1(x)  # [batch_size, 8, 32, 32]
         # 深度卷积
-        x = res_unit(self.deep_conv_combo, de_noise)  # [batch_size, 8, 32 ,32]
+        x = res_unit(self.deep_conv_combo, x)  # [batch_size, 8, 32 ,32]
         # 分组卷积
         x = res_unit(self.group_conv_combo, x)  # [batch_size, 32, 32 ,32]
         # 深度可分卷积
         x = res_unit(self.deep_separate_combo_1, x)  # [batch_size, 32, 32 ,32]
         x = res_unit(self.deep_separate_combo_2, x)  # [batch_size, 2, 32 ,32]
+        x = self.conv2d_2(x)
         output = x.view(-1, RMNetConfiguration.data_length)  # [batch_size, 2*32*32]
         return output
     
@@ -139,7 +152,7 @@ class LinearWrapper(nn.Module):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features)
         self.elu = nn.ELU(True)
-        self.bn = nn.BatchNorm1d(out_features)
+        self.bn2d = nn.BatchNorm1d(out_features)
 
     def forward(self, x):
         x = self.linear(x)
@@ -159,11 +172,11 @@ class Conv2DWrapper(nn.Module):
         self.bn2d = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
-        x = self.conv2d_1(x)
-        x = self.elu_1(x)
-        x = self.bn2d_1(x)
+        x = self.conv2d(x)
+        x = self.elu(x)
+        x = self.bn2d(x)
+        return x
 
 
 if __name__ == '__main__':
-    model = RMNet(5, 8).to(config.device)
-    summary(model, (2048,))
+    pass

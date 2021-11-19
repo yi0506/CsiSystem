@@ -16,19 +16,20 @@ from libs import config
 class SingletonType(type):
     """单例元类"""
     _instance_lock = threading.Lock()
+
     def __call__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance"):
             with SingletonType._instance_lock:
                 if not hasattr(cls, "_instance"):
-                    cls._instance = super(SingletonType,cls).__call__(*args, **kwargs)
+                    cls._instance = super(SingletonType, cls).__call__(*args, **kwargs)
         return cls._instance
-    
-    
+
+
 def res_unit(func, input_):
-        """用过残差网络提取特征"""
-        out = func(input_)
-        output = out + input_  # 加入残差结构
-        return output
+    """用过残差网络提取特征"""
+    out = func(input_)
+    output = out + input_  # 加入残差结构
+    return output
 
 
 def net_normalize(input_):
@@ -37,8 +38,8 @@ def net_normalize(input_):
     std = torch.std(input_, dim=-1, keepdim=True)
     output = (input_ - mean) / std
     return output
-    
-    
+
+
 def gs_noise(x, snr):
     """
     对模型加入高斯白噪声
@@ -58,7 +59,7 @@ def gs_noise(x, snr):
         return x + gaussian
 
 
-def test(model, data_loader, snr, info: str=""):
+def test(model, data_loader, snr, info: str = ""):
     """
     评估模型，并返回结果
     
@@ -95,7 +96,10 @@ def test(model, data_loader, snr, info: str=""):
     avg_similarity = np.mean(similarity_list)
     avg_time = np.mean(time_list)
     avg_capacity = np.mean(capacity_list)
-    print(info + "\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, avg_loss, avg_similarity, avg_time, avg_capacity))
+    print(info + "\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, avg_loss,
+                                                                                                   avg_similarity,
+                                                                                                   avg_time,
+                                                                                                   avg_capacity))
     return {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
 
 
@@ -124,7 +128,10 @@ def train(model, epoch, save_path, data_loader, model_snr, info):
             loss.backward()  # 反向传播
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()  # 梯度更新
-            bar.set_description(info + "\tSNR:{}dB\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(model_snr, i + 1, idx, loss.item(), similarity.item()))
+            bar.set_description(
+                info + "\tSNR:{}dB\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(model_snr, i + 1, idx,
+                                                                                          loss.item(),
+                                                                                          similarity.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
@@ -135,37 +142,40 @@ def train(model, epoch, save_path, data_loader, model_snr, info):
 
 def model_snr_loop_wrapper(func):
     """模型加入不同信噪比噪声的实例方法的装饰器"""
+
     def call_func(obj, *args, **kwargs):
         # obj 为该实例对象
         model_snrs = kwargs.get('model_snrs', config.model_SNRs)
-        kwargs.pop('snr_list')
         for model_snr in model_snrs:
             func(obj, model_snr=model_snr, *args, **kwargs)
+
     return call_func
 
 
 def ratio_loop_wrapper(func):
     """执行不同压缩率的实例方法的装饰器"""
+
     def call_func(obj, *args, **kwargs):
         # obj 为该实例对象
         r_list = kwargs.get('r_list', config.ratio_list)
-        kwargs.pop('r_list')
         for ratio in r_list:
             func(obj, ratio=ratio, *args, **kwargs)
+
     return call_func
-    
-    
+
+
 def v_loop_wrapper(func):
     """执行不同速度的实例方法的装饰器"""
+
     def call_func(obj, *args, **kwargs):
         # obj 为该实例对象
         velocity = kwargs.get('v_list', config.velocity_list)
-        kwargs.pop('v_list')
         for v in velocity:
             func(obj, v=v, *args, **kwargs)
+
     return call_func
-    
-    
+
+
 def rec_mkdir(file_path):
     """
     以执行python程序的位置做为当前目录，递归创建文件夹，如果文件夹不存在，就创建，存在就跳过，继续下一层
@@ -174,9 +184,8 @@ def rec_mkdir(file_path):
     """
     dir_list = file_path.split('/')[:-1]
     cur_dir = ""
-    for dir in dir_list:
-        cur_dir += dir
+    for dr in dir_list:
+        cur_dir += dr
         if not os.path.exists(cur_dir):
             os.mkdir(cur_dir)
         cur_dir += "/"
-        

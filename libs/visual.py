@@ -262,7 +262,7 @@ class TimeForm(Plot):
         file_path = "./images/{0}km/time.json".format(v)
         rec_mkdir(file_path)
         json.dump(time_dic, open(file_path, "w", encoding="utf-8"), ensure_ascii=False, indent=4)
-        print("{} time.json is done".format(self.velocity))
+        print("{} time.json is done".format(v))
 
 
 if __name__ == '__main__':
