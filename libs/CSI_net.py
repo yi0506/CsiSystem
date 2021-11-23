@@ -4,7 +4,7 @@ import torch.nn as nn
 from torchsummary import summary
 
 import config
-from utils import gs_noise
+from utils import gs_noise, res_unit
 
 
 class CSINetConfiguration(object):
@@ -46,7 +46,7 @@ class Encoder(nn.Module):
                                 nn.Conv2d(in_channels=CSINetConfiguration.channel_num, out_channels=CSINetConfiguration.channel_num, kernel_size=CSINetConfiguration.kerner_size,
                                 stride=CSINetConfiguration.stride, padding=CSINetConfiguration.padding),
                                 nn.BatchNorm2d(CSINetConfiguration.channel_num),
-                                nn.LeakyReLU(CSINetConfiguration.slope)
+                                nn.LeakyReLU(CSINetConfiguration.leak_relu_slope)
                             )
         self.fc_compress = nn.Linear(CSINetConfiguration.data_length, CSINetConfiguration.data_length // ratio)
 
@@ -93,10 +93,10 @@ class Decoder(nn.Module):
 
         # 全连接
         x = self.fc_restore(encoder_output)  # [batch_size, 2048]
-        x = x.view(-1, CSINetConfiguration.channel_num, CSINetConfiguration.channel_num)  # [batch_size, 2, 32, 32]
+        x = x.view(-1, CSINetConfiguration.channel_num, CSINetConfiguration.maxtrix_len, CSINetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
         # refine_net
-        x = self.res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
-        x = self.res_unit(self.refine_net_2, x)  # [batch_size, 2, 32, 32]
+        x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
+        x = res_unit(self.refine_net_2, x)  # [batch_size, 2, 32, 32]
         # 卷积
         output = self.conv2d_combo(x)  # [batch_size, 2, 32, 32]
         return output
@@ -130,5 +130,5 @@ class RefineNet(nn.Module):
 
 
 if __name__ == '__main__':
-    model = CsiNet().to(config.device)
+    model = CsiNet(4).to(config.device)
     summary(model, (1024,))

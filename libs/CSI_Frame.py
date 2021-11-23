@@ -18,7 +18,7 @@ class High_Speed_Net_CSI(metaclass=SingletonType):
     CSI_DATASET = None  # 执行CSI的模型的数据集
     NETWORK_NAME = None  # 网络模型名称
 
-    def net_train(self, ratio, v, model_snr, epoch=200) -> None:
+    def net_train(self, ratio, v, model_snr, epoch=40) -> None:
         """在不同压缩率下，进行训练某个信噪比的模型"""
         model = self.CSI_MODEL(ratio)
         save_path = "./model/{}km/{}/ratio_{}/{}_{}dB.ckpt".format(v, self.NETWORK_NAME, ratio, self.NETWORK_NAME, model_snr)
@@ -29,7 +29,7 @@ class High_Speed_Net_CSI(metaclass=SingletonType):
     @model_snr_loop_wrapper
     @v_loop_wrapper
     @ratio_loop_wrapper
-    def net_joint_train(self, ratio, v, model_snr, epoch=200) -> None:
+    def net_joint_train(self, ratio, v, model_snr, epoch=40) -> None:
         """在不同压缩率、不同速度的信道模型下，训练不同信噪比的模型"""
         self.net_train(ratio, v, model_snr, epoch)
 

@@ -84,6 +84,10 @@ class CSINetDataset(NetDataset):
         super().__init__(is_train)
         dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
         self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
+        self.Configuration.collate_fn = self.collate_fn
+
+    def collate_fn(self, batch):
+        return torch.FloatTensor(batch)
 
 
 if __name__ == '__main__':

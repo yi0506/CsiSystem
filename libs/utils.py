@@ -86,10 +86,10 @@ def test(model, data_loader, snr, info: str = ""):
             cur_similarity = cosine_similarity(output, input_, dim=-1).mean().cpu().item()
             cur_loss = mse_loss(output, input_).cpu().item()
             cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
-            capacity_list.append(cur_capacity / input_.size[0])
-            loss_list.append(cur_loss / input_.size[0])
+            capacity_list.append(cur_capacity / input_.size()[0])
+            loss_list.append(cur_loss / input_.size()[0])
             similarity_list.append(cur_similarity)
-            time_list.append((stop_time - start_time) / input_.size[0])
+            time_list.append((stop_time - start_time) / input_.size()[0])
 
     # 计算平均相似度与损失
     avg_loss = np.mean(loss_list)
