@@ -86,7 +86,7 @@ class CS_CSI(metaclass=SingletonType):
         restore: 采用的恢复方法 
 
         """
-        self.CS_TP.append(sparse, restore)
+        self.CS_TP.append((sparse, restore))
         self.RESTORE_DIC[restore] = cls
 
     def CS_test(self, v, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
@@ -99,7 +99,7 @@ class CS_CSI(metaclass=SingletonType):
                 full_sampling = True
             # 在不同信噪比下测试CS方法的效果
             for snr in SNRs:
-                ret = self.RESTORE_DIC[restore](snr=snr, ratio=ratio, v=v, sparse_method=sparse, restore_method=restore, full_sampling=full_sampling, data_loader=data_loader)()
+                ret = self.RESTORE_DIC[restore](snr=snr, ratio=ratio, v=v, sparse=sparse, restore=restore, full_sampling=full_sampling, data_loader=data_loader)()
                 result_dict["{}dB".format(snr)] = ret
                 
             if save_ret:

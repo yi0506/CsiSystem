@@ -96,7 +96,6 @@ class BaseCS(metaclass=ABCMeta):
         capacity_list = list()
         bar = tqdm.tqdm(self.data_loader)
         for data in bar:
-            data = data.reshape(-1, 1)
             # 数据压缩
             start_time = time.time()  # 开始时间
             y, Beta, k = self.__compress(data)
@@ -151,7 +150,7 @@ class BaseCS(metaclass=ABCMeta):
         """
         # 产生对应信噪比的高斯白噪声
         if y.dtype == np.complex:
-            return self.__gs_noise(np.real(y), self.snr) + 1j *self.__gs_noise(np.imag(y), self.snr)
+            return self.__gs_noise(np.real(y), self.snr) + 1j * self.__gs_noise(np.imag(y), self.snr)
         else:
             return self.__gs_noise(y, self.snr)
 
@@ -189,7 +188,8 @@ class BaseCS(metaclass=ABCMeta):
         # 保存结果到字典中并返回
         return {"snr": self.snr, "NMSE": avg_loss, "相似度": avg_similarity, "time": avg_time, "Capacity": avg_capacity}
 
-    def __gs_noise(self, y, snr):
+    @staticmethod
+    def __gs_noise(y, snr):
         """加入高斯白噪声"""
         if snr is None:
             return y
@@ -197,7 +197,7 @@ class BaseCS(metaclass=ABCMeta):
         noise_power = (y_power / (10 ** (snr / 10)))  # 噪声的功率
         gaussian = np.random.normal(0, np.sqrt(noise_power), y.shape)  # 产生对应信噪比的高斯白噪声
         return gaussian + y
-    
+
     def FFT_restore(self, y_add_noise, Beta, k):
         """
         基于FFT稀疏基的CS重构算法

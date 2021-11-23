@@ -47,6 +47,10 @@ class CSDataset(CsiDataset):
 
     def __init__(self, velocity):
         self.FILE_PATH = r"{}/data/matlab/test_100_32_{}_H.mat".format(config.BASE_DIR, velocity)
+        self.Configuration.collate_fn = self.collate_fn
+        
+    def collate_fn(self, batch):
+        return batch[0].reshape(-1, 1)
 
 
 class NetDataset(CsiDataset):
@@ -54,6 +58,10 @@ class NetDataset(CsiDataset):
 
     def __init__(self, is_train) -> None:
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
+        self.Configuration.collate_fn = self.collate_fn
+        
+    def collate_fn(self, batch):
+        return torch.FloatTensor(batch)
 
 
 class RMNetDataset(NetDataset):
@@ -67,7 +75,6 @@ class RMNetDataset(NetDataset):
         super().__init__(is_train)
         dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
         self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
-        self.Configuration.collate_fn = self.collate_fn
 
     def collate_fn(self, batch):
         return torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
@@ -84,11 +91,7 @@ class CSINetDataset(NetDataset):
         super().__init__(is_train)
         dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
         self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
-        self.Configuration.collate_fn = self.collate_fn
-
-    def collate_fn(self, batch):
-        return torch.FloatTensor(batch)
-
+        
 
 if __name__ == '__main__':
     data_loader = RMNetDataset(True, 50).get_data_loader()

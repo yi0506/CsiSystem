@@ -22,7 +22,7 @@ class Xun_Lian_He_Ce_Shi(object):
     def cs_csi(self):
         cs = CS_CSI()
         cs.cs_register(OMPCS, CSConfiguration.sparse_dct, CSConfiguration.omp)
-        cs.cs_register(SAMPCS, CSConfiguration.sparse_dct, CSConfiguration.samp)
+        cs.cs_register(SAMPCS, CSConfiguration.sparse_fft, CSConfiguration.samp)
         cs.CS_joint_test()
 
 

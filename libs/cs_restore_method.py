@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import pickle
 
+import config
+
 
 def OMP(y, Beta, k):
     """
@@ -158,8 +160,8 @@ def SP(y, Beta, k):
 
 def generate_dct_sparse_base(dim):
     """获得DCT稀疏基"""
+    print("正在生成dct稀疏基....")
     A = np.zeros((dim, dim))  # A:稀疏基矩阵
-
     # 确定稀疏基矩阵系数
     for i in range(dim):
         for j in range(dim):
@@ -168,9 +170,9 @@ def generate_dct_sparse_base(dim):
             else:
                 N = np.sqrt(2 / dim)
             A[i][j] = N * np.cos(np.pi * (j + 0.5) * i / dim)
-            print("第{}行，第{}列".format(i, j))
+    print("生成dct稀疏基完成....")
     # 保存稀疏基
-    pickle.dump(A, open("../data/dct_32.pkl", "wb"))
+    pickle.dump(A, open("{}/data/dct_sp.pkl".format(config.BASE_DIR), "wb"))
 
 
 def generate_fft_sparse_base(N):
@@ -182,8 +184,10 @@ def generate_fft_sparse_base(N):
     N: length of complex sinusoid in samples
     n: 当前样本
     """
+    print("正在生成fft稀疏基....")
     n = np.arange(N).reshape(1, N)
     m = n.T * n / N  # [N, 1] * [1, N] = [N, N]
     S = np.exp(-1j * 2 * np.pi * m)
     # 保存稀疏基
-    pickle.dump(S, open("../data/fft_32.pkl", "wb"))
+    print("生成fft稀疏基完成....")
+    pickle.dump(S, open("{}/data/fft_sp.pkl".format(config.BASE_DIR), "wb"))
