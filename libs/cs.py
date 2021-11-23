@@ -207,8 +207,8 @@ class BaseCS(metaclass=ABCMeta):
         Beta_real = np.real(Beta)
         Beta_imag = np.imag(Beta)
         # 进行CS恢复计算
-        restore_s_real = self.CS_p( y_add_noise, Beta_real, k)  # s实部
-        restore_s_imag = self.CS_p( y_add_noise, Beta_imag, k)  # s虚部
+        restore_s_real = self.CS_p(y_add_noise, Beta_real, k)  # s实部
+        restore_s_imag = self.CS_p(y_add_noise, Beta_imag, k)  # s虚部
         # 实虚部合并
         restore_s = restore_s_real + restore_s_imag * 1j
         # IFFT变换，恢复data

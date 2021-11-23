@@ -53,9 +53,9 @@ def gs_noise(x, snr):
     if snr is None:
         return x
     with torch.no_grad():
-        x_power = (torch.sum(x ** 2) / x.numel())  # 信号的功率
-        noise_power = (x_power / torch.tensor(10 ** (snr / 10)))  # 噪声的功率
-        gaussian = torch.normal(0, torch.sqrt(noise_power).item(), x.size(), device=config.device)  # 产生对应信噪比的高斯白噪声
+        x_power = (torch.sum(x ** 2) / x.numel()).item()  # 信号的功率
+        noise_power = x_power / 10 ** (snr / 10)  # 噪声的功率
+        gaussian = torch.normal(0, pow(noise_power, 0.5), x.size())  # 产生对应信噪比的高斯白噪声
         return x + gaussian
 
 
