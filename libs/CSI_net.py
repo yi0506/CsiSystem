@@ -76,7 +76,6 @@ class Decoder(nn.Module):
                                     nn.Conv2d(in_channels=CSINetConfiguration.channel_num, out_channels=CSINetConfiguration.channel_num, 
                                               kernel_size=CSINetConfiguration.kerner_size, stride=CSINetConfiguration.stride, padding=CSINetConfiguration.stride),
                                     nn.BatchNorm2d(CSINetConfiguration.channel_num),
-                                    nn.Sigmoid()
                                 )
 
     def forward(self, encoder_output):
