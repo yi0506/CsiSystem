@@ -22,6 +22,11 @@ class RMNet(nn.Module):
     """训练模型三个部分合并封装"""
 
     def __init__(self, ratio):
+        """
+        RMNet网络模型
+        
+        :param ratio: 压缩率
+        """
         super(RMNet, self).__init__()
         self.encoder = Encoder(ratio)
         self.decoder = Decoder(ratio)

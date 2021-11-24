@@ -96,10 +96,7 @@ def test(model, data_loader, snr, info: str = ""):
     avg_similarity = np.mean(similarity_list)
     avg_time = np.mean(time_list)
     avg_capacity = np.mean(capacity_list)
-    print(info + "\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, avg_loss,
-                                                                                                   avg_similarity,
-                                                                                                   avg_time,
-                                                                                                   avg_capacity))
+    print(info + "\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, avg_loss, avg_similarity, avg_time, avg_capacity))
     return {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
 
 
@@ -128,16 +125,24 @@ def train(model, epoch, save_path, data_loader, model_snr, info):
             loss.backward()  # 反向传播
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()  # 梯度更新
-            bar.set_description(
-                info + "\tSNR:{}dB\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(model_snr, i + 1, idx,
-                                                                                          loss.item(),
-                                                                                          similarity.item()))
+            bar.set_description(info + "\tSNR:{}dB\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(model_snr, i+1, idx, loss.item(), similarity.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
             if loss.item() < 1e-6:
                 return
+
+
+def criteria_loop_wrapper(func):
+    """不同评价指标的装饰器"""
+
+    def call_func(obj, *args, **kwargs):
+        criteria_li = kwargs.get("criteria", config.criteria_list)
+        for criteria in criteria_li:
+            func(obj, criteria=criteria, *args, **kwargs)
+
+    return call_func
 
 
 def model_snr_loop_wrapper(func):

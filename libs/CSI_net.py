@@ -23,7 +23,11 @@ class CsiNet(nn.Module):
     """压缩端与解压缩端合并封装"""
 
     def __init__(self, ratio):
-        """初始化模型与必要参数"""
+        """
+        CSINet网络模型
+        
+        :param ratio: 压缩率
+        """
         super(CsiNet, self).__init__()
         self.encoder = Encoder(ratio)
         self.decoder = Decoder(ratio)

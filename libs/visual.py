@@ -13,7 +13,7 @@ from utils import rec_mkdir
 class LoadTestData(object):
     """加载测试数据"""
 
-    def load_net_data(self, v:int, ratio:int, networks:list, model_snr:int) -> dict:
+    def load_net_data(self, v: int, ratio: int, networks: list, model_snr: int) -> dict:
         """
         加载不同网络的测试结果，
         Parameter:
@@ -31,7 +31,7 @@ class LoadTestData(object):
                 }
 
         """
-        
+
         y_dict = dict()
         if not networks:
             return y_dict
@@ -55,7 +55,7 @@ class LoadTestData(object):
         if not methods:
             return y_dict
         for md in methods:
-            y_dict[md] = pickle.load(open("./test_result/{}km/cs/ratio_{}/result/{}.pkl".format(v, ratio, methods), "rb"))    
+            y_dict[md] = pickle.load(open("./test_result/{}km/cs/ratio_{}/result/{}.pkl".format(v, ratio, md), "rb"))
         return y_dict
 
 
@@ -84,20 +84,20 @@ class Plot(object):
         "font.family": 'serif',
         "mathtext.fontset": 'stix',
         "font.serif": ['SimSun'],
-        "axes.unicode_minus": False
+        "axes.unicode_minus": False,
     }
     rcParams.update(FRONT)
     dl = LoadTestData()
-    
+
     @staticmethod
     def trans_criteria(criteria):
         """
         对字符串进行转化：
                 a.将"time"转化为 "Time"
-                b.将"相似度"转化为 "\\rho"
+                b.将"相似度"转化为 "\rho"
                 c.其余不变
 
-        :return: "Time", "\\rho", "NMSE", "Capacity"
+        :return: "Time", "\rho", "NMSE", "Capacity"
         """
         if criteria == "time":
             return "Time"  # time大写
@@ -105,8 +105,9 @@ class Plot(object):
             return r"\rho"  # 将"相似度"转化为希腊字母"rho"
         else:
             return criteria
-    
-    def set_description(self, title, xlabel, ylabel, img_name, **description):
+        
+    @staticmethod
+    def set_description(title, xlabel, ylabel, img_name, **description):
         """根据描述信息画图"""
         # 非必须
         use_grid = description.get("use_grid", False)
@@ -141,6 +142,11 @@ class HighSpeedNetPlot(Plot):
 
     def net_plot(self, v, networks, criteria, model_snr, img_format, ratio_list):
         """
+        :param ratio_list: 压缩率列表
+        :param img_format: 图片格式
+        :param model_snr: 不同信噪比下训练的模型
+        :param v: 速度
+        :param networks: 不同网络模型
         :param criteria: "loss"、"相似度"、"time"、"capacity"
         比较不同压缩率的情况下，不同网络的随着snr的变化的效果
         """
@@ -150,27 +156,31 @@ class HighSpeedNetPlot(Plot):
             # 获取数据
             data = self.dl.load_net_data(v, ratio, networks, model_snr)
             # 解析数据
-            for network, val in data.items():
+            for idx, (network, val) in enumerate(data.items()):
                 y = []
                 for dB in x:
                     y.append(val["{}dB".format(dB)][criteria])
-                plt.plot(x, y, label=r"1/{} {}".format(ratio, network), marker=self.marker_list[0], linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
+                plt.plot(x, y, label=r"1/{} {}".format(ratio, network), marker=self.marker_list[idx], linestyle=self.line_style[idx], markerfacecolor="none", markersize=8, linewidth=2)
         # 添加描述信息
-        criteria = self.trans_criteria(criteria)
+        criteria_label = self.trans_criteria(criteria)
         title = r"$\mathrm{{{}km/h}}$".format(v)
-        xlabel =  r"$\mathrm{SNR(dB)}$"
-        ylabel =  r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria),
+        xlabel = r"$\mathrm{SNR(dB)}$"
+        ylabel = r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria_label) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria_label)
         img_name = "./images/{0}km/net-{1}—{2}dB_model.{3}".format(v, criteria, model_snr, img_format)
-        use_gird =  True
+        use_gird = True
         yticks = config.y_ticks_similarity if criteria == "相似度" else None
-        loc =  "best" # "lower right"
+        loc = "best"  # "lower right"
         self.set_description(title, xlabel, ylabel, img_name, use_gird=use_gird, yticks=yticks, loc=loc)
 
 
 class CSPlot(Plot):
-    
+
     def cs_plot(self, v, methods, criteria, img_format, ratio_list):
         """
+        :param ratio_list: 压缩率列表
+        :param img_format: 图片格式
+        :param methods: 不同CS方法
+        :param v: 速度
         :param criteria: "loss"、"similarity"、"time"、"capacity"
         在不同压缩率下，绘制不同cs方法的criteria随着snr的变化
         """
@@ -180,20 +190,20 @@ class CSPlot(Plot):
             # 获取数据
             data = self.dl.load_cs_data(v, ratio, methods)
             # 解析数据
-            for methdod, val in data.items():
+            for idx, (methdod, val) in enumerate(data.items()):
                 y = []
                 for dB in x:
                     y.append(val["{}dB".format(dB)][criteria])
-                plt.plot(x, y, label=r"1/{} {}".format(ratio, methdod), marker=self.marker_list[0], linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
+                plt.plot(x, y, label=r"1/{} {}".format(ratio, methdod), marker=self.marker_list[idx], linestyle=self.line_style[idx], markerfacecolor="none", markersize=8, linewidth=2)
         # 添加描述信息
-        criteria = self.trans_criteria(criteria)
+        criteria_label = self.trans_criteria(criteria)
         title = r"$\mathrm{{{}km/h}}$".format(v)
-        xlabel =  r"$\mathrm{SNR(dB)}$"
-        ylabel =  r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria),
+        xlabel = r"$\mathrm{SNR(dB)}$"
+        ylabel = r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria_label) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria_label)
         img_name = "./images/{0}km/CS-{1}.{2}".format(v, criteria, img_format)
-        use_gird =  True
+        use_gird = True
         yticks = config.y_ticks_similarity if criteria == "相似度" else None
-        loc =  "best" # "lower right"
+        loc = "best"  # "lower right"
         self.set_description(title, xlabel, ylabel, img_name, use_gird=use_gird, yticks=yticks, loc=loc)
 
 
@@ -201,6 +211,12 @@ class CSNetMultiRatio(Plot):
 
     def cs_plot_multi_ratio(self, v, networks, model_snr, methods, criteria, img_format, ratio_list):
         """
+        :param model_snr: 不同信噪比下训练的模型
+        :param networks: 不同网络模型
+        :param ratio_list: 压缩率列表
+        :param img_format: 图片格式
+        :param methods: 不同CS方法
+        :param v: 速度
         :param criteria: "loss"、"相似度"、"time"、"capacity"
         在的不同缩率下，绘制不同cs方法的criteria随着snr的变化，同时与神经网络进行对比
         """
@@ -222,17 +238,17 @@ class CSNetMultiRatio(Plot):
                 y = []
                 for dB in x:
                     y.append(val["{}dB".format(dB)][criteria])
-                plt.plot(x, y, label=r"1/{} {}".format(ratio, network), marker=self.marker_list[0], linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
+                plt.plot(x, y, label=r"1/{} {}".format(ratio, network), marker=self.marker_list[1], linestyle=self.line_style[1], markerfacecolor="none", markersize=8, linewidth=2)
 
         # 添加描述信息
-        criteria = self.trans_criteria(criteria)
+        criteria_label = self.trans_criteria(criteria)
         title = r"$\mathrm{{{}km/h}}$".format(v)
-        xlabel =  r"$\mathrm{SNR(dB)}$"
-        ylabel =  r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria),
+        xlabel = r"$\mathrm{SNR(dB)}$"
+        ylabel = r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria_label) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria_label)
         img_name = "./images/{0}km/CS-Net-{1}-{2}dB_model-{3}.{4}".format(v, criteria, model_snr, ratio_list, img_format)
-        use_gird =  True
+        use_gird = True
         yticks = config.y_ticks_similarity if criteria == "相似度" else None
-        loc =  "best" # "lower right"
+        loc = "best"  # "lower right"
         self.set_description(title, xlabel, ylabel, img_name, use_gird=use_gird, yticks=yticks, loc=loc)
 
 
@@ -244,6 +260,7 @@ class TimeForm(Plot):
         x = config.SNRs
         time_dic = {}
         for ratio in ratio_list:
+            time_dic[ratio] = {}
             # 神经网络数据
             net_data = self.dl.load_net_data(v, ratio, networks, model_snr)
             for network, val in net_data.items():
@@ -262,7 +279,7 @@ class TimeForm(Plot):
         file_path = "./images/{0}km/time.json".format(v)
         rec_mkdir(file_path)
         json.dump(time_dic, open(file_path, "w", encoding="utf-8"), ensure_ascii=False, indent=4)
-        print("{} time.json is done".format(v))
+        print("{} is done".format(file_path))
 
 
 if __name__ == '__main__':
