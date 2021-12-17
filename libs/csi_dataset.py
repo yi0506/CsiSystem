@@ -65,7 +65,7 @@ class NetDataset(CsiDataset):
 
 
 class RMNetDataset(NetDataset):
-    """RM Net 数据集"""
+    """RMNet 数据集"""
 
     def __init__(self, is_train, velocity) -> None:
         """
@@ -80,8 +80,12 @@ class RMNetDataset(NetDataset):
         return torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
 
 
+class RMStuNetDataset(RMNetDataset):
+    """RMStuNet 数据集"""
+
+
 class CSINetDataset(NetDataset):
-    """CSI Net 数据集"""
+    """CSINet 数据集"""
 
     def __init__(self, is_train, velocity) -> None:
         """
@@ -98,3 +102,4 @@ if __name__ == '__main__':
     print(len(data_loader))
     for i in tqdm(data_loader):
         print(i.size())
+        break

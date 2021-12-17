@@ -1,15 +1,14 @@
 """网络模型与CS模块各项功能的封装"""
 import pickle
 import torch
-from libs.RM_net import RMNetConfiguration
-from libs.CSI_net import CSINetConfiguration
 
 from utils import ratio_loop_wrapper, model_snr_loop_wrapper, v_loop_wrapper
 import config
-from RM_net import RMNet
-from CSI_net import CsiNet
-from utils import rec_mkdir, SingletonType, train, test
-from csi_dataset import CSDataset, RMNetDataset, CSINetDataset
+from RM_net import RMNet, RMNetConfiguration
+from CSI_net import CsiNet, CSINetConfiguration
+from utils import rec_mkdir, SingletonType, train, test, train_stu
+from csi_dataset import CSDataset, RMNetDataset, CSINetDataset, RMStuNetDataset
+from rm_stu_net import RMStuNet, RMStuNetConfiguration
 
 
 class High_Speed_Net_CSI(metaclass=SingletonType):
@@ -18,10 +17,10 @@ class High_Speed_Net_CSI(metaclass=SingletonType):
     CSI_DATASET = None  # 执行CSI的模型的数据集
     NETWORK_NAME = None  # 网络模型名称
 
-    def net_train(self, ratio, v, model_snr, epoch=config.epoch) -> None:
+    def net_train(self, ratio, v, model_snr, epoch=config.epoch, save_path: str = "") -> None:
         """在不同压缩率下，进行训练某个信噪比的模型"""
         model = self.CSI_MODEL(ratio)
-        save_path = "./model/{}km/{}/ratio_{}/{}_{}dB.ckpt".format(v, self.NETWORK_NAME, ratio, self.NETWORK_NAME, model_snr)
+        save_path = "./model/{}km/{}/ratio_{}/{}_{}dB.ckpt".format(v, self.NETWORK_NAME, ratio, self.NETWORK_NAME, model_snr) if not save_path else save_path
         info = "v:{}\tratio:{}".format(v, ratio)
         dataloader = self.CSI_DATASET(True, v).get_data_loader()
         train(model, epoch, save_path, dataloader, model_snr, info)
@@ -69,6 +68,25 @@ class CSINet_CSI(High_Speed_Net_CSI):
     CSI_MODEL = CsiNet
     CSI_DATASET = CSINetDataset
     NETWORK_NAME = CSINetConfiguration.network_name
+
+
+class RMStuNet_CSI(High_Speed_Net_CSI):
+    """RM_stu_net CSI执行"""
+    CSI_MODEL = RMStuNet
+    CSI_DATASET = RMStuNetDataset  # RMStuNet为学生模型，与教师模型使用同样数据集
+    NETWORK_NAME = RMStuNetConfiguration.network_name
+    TEACHER = RMNet_CSI
+    
+    def net_train(self, ratio, v, model_snr, epoch=config.epoch, save_path: str = "") -> None:
+        """在不同压缩率下，进行训练某个信噪比的模型"""
+        stu = self.CSI_MODEL(ratio)
+        teacher = self.TEACHER.CSI_MODEL(ratio)
+        teacher_path = "./model/{}km/{}/ratio_{}/{}_{}dB.ckpt".format(v, self.TEACHER.NETWORK_NAME, ratio, self.TEACHER.NETWORK_NAME, model_snr)
+        teacher.load_state_dict(torch.load(teacher_path))
+        save_path = "./model/{}km/{}/ratio_{}/{}_{}dB.ckpt".format(v, self.NETWORK_NAME, ratio, self.NETWORK_NAME, model_snr) if not save_path else save_path
+        info = "v:{}\tratio:{}".format(v, ratio)
+        dataloader = self.CSI_DATASET(True, v).get_data_loader()
+        train_stu(teacher, stu, epoch, save_path, dataloader, model_snr, info)
 
 
 class CS_CSI(metaclass=SingletonType):

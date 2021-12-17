@@ -1,11 +1,11 @@
 """主函数"""
 from libs import config
-from libs.utils import v_loop_wrapper, model_snr_loop_wrapper
+from libs.utils import v_loop_wrapper, model_snr_loop_wrapper, criteria_loop_wrapper
 from libs.RM_net import RMNetConfiguration
 from libs.CSI_net import CSINetConfiguration
 from libs.cs import CSConfiguration, SAMPCS, OMPCS, SPCS, DCTCS, FFTCS
 from libs.visual import CSPlot, HighSpeedNetPlot, TimeForm
-from libs.CSI_Frame import RMNet_CSI, CSINet_CSI, CS_CSI
+from libs.CSI_Frame import RMNet_CSI, CSINet_CSI, CS_CSI, RMStuNet_CSI
 
 
 class Xun_Lian_He_Ce_Shi(object):
@@ -14,20 +14,24 @@ class Xun_Lian_He_Ce_Shi(object):
         rmnet = RMNet_CSI()
         csinet = CSINet_CSI()
 
-        rmnet.net_joint_train()
-        rmnet.net_joint_test()
-        csinet.net_joint_train()
-        csinet.net_joint_test()
+        # rmnet.net_joint_train()
+        # rmnet.net_joint_test()
+        # csinet.net_joint_train()
+        # csinet.net_joint_test()
+
+        rm_stu = RMStuNet_CSI()
+        rm_stu.net_joint_train()
+        rm_stu.net_joint_test()
 
     def cs_csi(self):
         cs = CS_CSI()
         cs.cs_register(OMPCS, CSConfiguration.sparse_dct, CSConfiguration.omp)
-        cs.cs_register(SAMPCS, CSConfiguration.sparse_fft, CSConfiguration.samp)
         cs.CS_joint_test()
 
 
 class Tu_He_Biao(object):
 
+    @criteria_loop_wrapper
     @v_loop_wrapper
     @model_snr_loop_wrapper
     def all_plot(self, v, criteria, model_snr, img_format="svg", ratio_list=config.ratio_list):
@@ -39,10 +43,7 @@ class Tu_He_Biao(object):
             RMNetConfiguration.network_name,
             CSINetConfiguration.network_name
         ]
-        methods = [
-            "{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.omp),
-            "{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.samp)
-        ]
+        methods = ["{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.omp)]
         HighSpeedNetPlot().net_plot(v, networks, criteria, model_snr, img_format, ratio_list)
         CSPlot().cs_plot(v, methods, criteria, img_format, ratio_list)
 
@@ -56,17 +57,17 @@ class Tu_He_Biao(object):
             RMNetConfiguration.network_name,
             CSINetConfiguration.network_name
         ]
-        methods = [
-            "{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.omp),
-            "{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.samp)
-        ]
+        methods = ["{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.omp)]
         tf = TimeForm()
         tf.csi_time_form(v, methods, networks, ratio_list, model_snr)
 
 
-x1 = Xun_Lian_He_Ce_Shi()
-y1 = Tu_He_Biao()
-x1.net_csi()
-x1.cs_csi()
-y1.all_form()
-y1.all_plot()
+if __name__ == '__main__':
+    x1 = Xun_Lian_He_Ce_Shi()
+    y1 = Tu_He_Biao()
+    x1.net_csi()
+    # x1.cs_csi()
+    # y1.all_form()
+    # y1.all_plot()
+
+

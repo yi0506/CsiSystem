@@ -1,8 +1,6 @@
 """csi网络模型"""
 import torch.nn as nn
-from torchsummary import summary
 
-import config
 from utils import gs_noise, res_unit, net_normalize
 
 
