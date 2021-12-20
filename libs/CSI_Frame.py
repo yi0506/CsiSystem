@@ -63,6 +63,7 @@ class CSPNet_CSI(COMM_Net_CSI):
     CSI_DATASET = CSPNetDataset  # 执行CSI的模型的数据集
     NETWORK_NAME = CSPNetConfiguration.network_name  # 网络模型名称
     TRAIN_FUNC = csp_train
+    TEST_FUNC = csp_test
         
         
 class CSINet_CSI(COMM_Net_CSI):
