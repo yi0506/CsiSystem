@@ -128,7 +128,7 @@ def csp_train(model, epoch, save_path, data_loader, info):
 
 
 
-def train(model, epoch, save_path, data_loader, model_snr, info):
+def train(model, epoch, save_path, data_loader, info):
     """
     进行模型训练
     
@@ -136,7 +136,6 @@ def train(model, epoch, save_path, data_loader, model_snr, info):
     epoch: 模型迭代次数
     save_path: 模型保存路径
     data_loader: 数据集迭代器
-    model_snr: 对模型训练时，加入某种信噪比的噪声，train中的snr对应test中的model_snr
     info: 额外的结果描述信息
     """
     model.to(config.device).train()
@@ -147,13 +146,13 @@ def train(model, epoch, save_path, data_loader, model_snr, info):
         for idx, data in enumerate(bar):
             optimizer.zero_grad()  # 梯度置为零
             data = data.to(config.device)  # 转到GPU训练
-            output = model(data, model_snr)
+            output = model(data, None)
             similarity = torch.cosine_similarity(output, data, dim=-1).mean()  # 当前一个batch的相似度
             loss = F.mse_loss(output, data)  # 计算损失
             loss.backward()  # 反向传播
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()  # 梯度更新
-            bar.set_description(info + "\tSNR:{}dB\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(model_snr, i+1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i+1, idx, loss.item(), similarity.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
@@ -162,7 +161,7 @@ def train(model, epoch, save_path, data_loader, model_snr, info):
                 return
 
 
-def train_stu(teacher, stu, epoch, save_path, data_loader, model_snr, info):
+def train_stu(teacher, stu, epoch, save_path, data_loader, info):
     """
     进行学生模型训练
     
@@ -171,7 +170,6 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, model_snr, info):
     epoch: 模型迭代次数
     save_path: 模型保存路径
     data_loader: 数据集迭代器
-    model_snr: 对模型训练时，加入某种信噪比的噪声，train中的snr对应test中的model_snr
     info: 额外的结果描述信息
     """
     teacher.to(config.device).eval()
@@ -183,13 +181,13 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, model_snr, info):
         for idx, data in enumerate(bar):
             optimizer.zero_grad()
             data = data.to(config.device)
-            teacher_ouput = teacher(data, model_snr)
-            stu_output = stu(data, model_snr)
+            teacher_ouput = teacher(data, None)
+            stu_output = stu(data, None)
             similarity = torch.cosine_similarity(stu_output, teacher_ouput, dim=-1).mean()
             loss = F.mse_loss(stu_output, teacher_ouput)
             loss.backward()
             optimizer.step()
-            bar.set_description(info + "\tSNR:{}dB\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(model_snr, i+1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i+1, idx, loss.item(), similarity.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在

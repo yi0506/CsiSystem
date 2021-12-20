@@ -5,7 +5,7 @@ from libs.RM_net import RMNetConfiguration
 from libs.CSI_net import CSINetConfiguration
 from libs.cs import CSConfiguration, SAMPCS, OMPCS, SPCS, DCTCS, FFTCS
 from libs.visual import HS_CSPlot, HS_NetPlot, HS_TimeForm
-from libs.CSI_Frame import RMNet_CSI, HS_CSINet_CSI, HS_CS_CSI, RMNetStu_CSI
+from libs.CSI_Frame import RMNet_CSI, HS_CSINet_CSI, HS_CS_CSI, RMNetStu_CSI, CSINetStu_CSI, CSPNet_CSI
 
 
 class Xun_Lian_He_Ce_Shi(object):
@@ -14,15 +14,20 @@ class Xun_Lian_He_Ce_Shi(object):
     def net_csi(self):
         rmnet = RMNet_CSI()
         csinet = HS_CSINet_CSI()
-
-        rmnet.net_joint_train(epoch=100)
-        rmnet.net_joint_test()
-        csinet.net_joint_train(epoch=70)
-        csinet.net_joint_test()
-
+        cspnet = CSPNet_CSI()
+        csinet_stu = CSINetStu_CSI()
         rm_stu = RMNetStu_CSI()
-        rm_stu.net_joint_train(epoch=50)
-        rm_stu.net_joint_test()
+        
+        rm_stu.net_train()
+
+        # rmnet.net_joint_train(epoch=100)
+        # rmnet.net_joint_test()
+        #
+        # csinet.net_joint_train(epoch=70)
+        # csinet.net_joint_test()
+        #
+        # rm_stu.net_joint_train(epoch=50)
+        # rm_stu.net_joint_test()
 
     def cs_csi(self):
         cs = HS_CS_CSI()
