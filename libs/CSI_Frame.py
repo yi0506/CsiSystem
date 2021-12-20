@@ -151,7 +151,7 @@ class High_Speed_Net_CSI(metaclass=SingletonType):
     def net_train(self, ratio, v, epoch=config.epoch, save_path: str = "") -> None:
         """在不同压缩率下，进行训练某个信噪比的模型"""
         model = self.CSI_MODEL(ratio)
-        save_path = "./model/{}/HS/{}km/ratio_{}/{}_{}dB.ckpt".format(self.NETWORK_NAME, v, ratio, self.NETWORK_NAME) if not save_path else save_path
+        save_path = "./model/{}/HS/{}km/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, v, ratio, self.NETWORK_NAME) if not save_path else save_path
         info = "{}\t:v:{}\tratio:{}".format(self.NETWORK_NAME, v, ratio)
         dataloader = self.CSI_DATASET(True, v).get_data_loader()
         train(model, epoch, save_path, dataloader, info)
