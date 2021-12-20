@@ -13,10 +13,10 @@ class RMStuNetConfiguration(object):
     stride = 1
     padding = 1
     sys_capacity_ratio = 60  # 系统容量倍率（可视化时使用）
-    network_name = "RMStuNet"  # 网络名称
+    network_name = "RMNetStu"  # 网络名称
 
 
-class RMStuNet(nn.Module):
+class RMNetStu(nn.Module):
     """训练模型三个部分合并封装"""
 
     def __init__(self, ratio):
@@ -25,7 +25,7 @@ class RMStuNet(nn.Module):
         
         :param ratio: 压缩率
         """
-        super(RMStuNet, self).__init__()
+        super(RMNetStu, self).__init__()
         self.encoder = Encoder(ratio)
         self.decoder = Decoder(ratio)
 

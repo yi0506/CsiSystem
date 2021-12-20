@@ -64,10 +64,10 @@ class BaseCS(metaclass=ABCMeta):
         初始化属性:
                 self.sparse  # 确定稀疏基
                 self.restore   # 确定重构算法
-                self.snr ----> snr  # 信噪比
-                self.full_sampling = full_sampling  # 是否全采样，即使用dct，fft压缩
-                self.ratio = ratio  # 压缩率
-                self.v = v  # 不同速度下的数据集
+                self.snr  # 信噪比
+                self.full_sampling  # 是否全采样，即使用dct，fft压缩
+                self.ratio  # 压缩率
+                self.data_loader = data_loader  # 数据集迭代器
 
         """
         # 初始化实例属性

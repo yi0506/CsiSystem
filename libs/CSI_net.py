@@ -84,14 +84,14 @@ class Decoder(nn.Module):
 
     def forward(self, encoder_output):
         """
-        由于训练数据形状为[batch_size, 32*32]，
-        因此最后需要reshape操作：[batch_size, 32, 32] -----> [batch_size, 32*32]，变为原来的形状
+        由于训练数据形状为[batch_size, 2048]，
+        因此最后需要reshape操作：[batch_size, 2, 32, 32] -----> [batch_size,  2048]，变为原来的形状
 
         数据解压缩：
         全连接 ----> reshape ----> 残差（refine_net） ----> 残差（refine_net） -----> 卷积  -----> reshape
 
-        :param encoder_output: [batch_size, 32*32/ratio]
-        :return: [batch_size, 32*32]
+        :param encoder_output: [batch_size,  2048/ratio]
+        :return: [batch_size, 2048]
         """
 
         # 全连接
@@ -134,4 +134,4 @@ class RefineNet(nn.Module):
 
 if __name__ == '__main__':
     model = CsiNet(4).to(config.device)
-    summary(model, (1024,))
+    summary(model, (2048,))

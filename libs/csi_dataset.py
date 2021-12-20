@@ -6,6 +6,7 @@ import h5py
 import numpy as np
 
 from libs import config
+from libs.CSI_net import CsiNet
 
 
 class CsiDataset(Dataset):
@@ -44,9 +45,9 @@ class CsiDataset(Dataset):
 
 class CSDataset(CsiDataset):
     """压缩感知数据集"""
-
-    def __init__(self, velocity):
-        self.FILE_PATH = r"{}/data/matlab/test_100_32_{}_H.mat".format(config.BASE_DIR, velocity)
+    
+    def __init__(self,):
+        self.FILE_PATH = r"{}/data/".format(config.BASE_DIR)  # TODO 没有数据集
         self.Configuration.collate_fn = self.collate_fn
         
     def collate_fn(self, batch):
@@ -62,6 +63,14 @@ class NetDataset(CsiDataset):
         
     def collate_fn(self, batch):
         return torch.FloatTensor(batch)
+
+
+class HS_CSDataset(CSDataset):
+    """高速移动环境下，压缩感知数据集"""
+
+    def __init__(self, velocity):
+        self.FILE_PATH = r"{}/data/matlab/test_100_32_{}_H.mat".format(config.BASE_DIR, velocity)
+        self.Configuration.collate_fn = self.collate_fn
 
 
 class RMNetDataset(NetDataset):
@@ -81,7 +90,28 @@ class RMNetDataset(NetDataset):
 
 
 class RMStuNetDataset(RMNetDataset):
-    """RMStuNet 数据集"""
+    """RMStuNet 数据集，两者数据集相同"""
+    pass
+
+
+class CSPNetDataset(NetDataset):
+    """CSPNet 数据集"""
+
+    def __init__(self, is_train, ratio) -> None:
+        """
+        :param is_train: 是否取训练集
+        """
+        super().__init__(is_train)
+        dataset = "test_10000_32_50_H.mat"  # TODO 没有数据集
+        self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
+        self.ratio = ratio
+
+    def collate_fn(self, batch):
+        target = torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
+        Fi_m = target.shape[-1] // self.ratio  # 得到观测矩阵的行数
+        Fi = torch.randn(target.shape[-1], Fi_m, dtype=torch.float32)  # 确定观测矩阵大小
+        y = torch.mm(target, Fi)  # 观测向量
+        return target, y
 
 
 class CSINetDataset(NetDataset):
@@ -95,11 +125,18 @@ class CSINetDataset(NetDataset):
         super().__init__(is_train)
         dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
         self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
-        
+
+
+class CSINetStuDataset(CSINetDataset):
+    """CsiStuNet 数据集，两者数据集相同"""
+    pass
+    
+    
 
 if __name__ == '__main__':
-    data_loader = RMNetDataset(True, 50).get_data_loader()
+    data_loader = CSPNetDataset(True, 50, 8).get_data_loader()
     print(len(data_loader))
-    for i in tqdm(data_loader):
-        print(i.size())
+    for idx, (target, y) in enumerate(tqdm(data_loader)):
+        print(target, y)
+        print(target.size(), y.size())
         break

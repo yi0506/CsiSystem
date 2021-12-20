@@ -21,7 +21,7 @@ train_batch_size = 250
 test_batch_size = 20
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 clip = 0.01  # 梯度裁剪阈值
-epoch = 20
+epoch = 50
 
 
 if __name__ == '__main__':
