@@ -1,8 +1,17 @@
 import os
 import threading
 import torch
+import numpy as np
 
 from libs import config
+
+
+def nmse(a, target, dtype):
+    """计算张量a和target的NMSE"""
+    if dtype == "torch":
+        return (10 * torch.log10(torch.div(torch.sum(torch.pow(torch.sub(a, target), 2)), torch.sum(torch.pow(a, 2))))).item()
+    elif dtype == "np":
+        return (10 * np.log10(np.divide(np.sum(np.power(np.subtract(a, target), 2)), np.sum(np.power(a, 2))))).item()
 
 
 class SingletonType(type):
@@ -35,8 +44,8 @@ def net_normalize(input_):
 def gs_noise(x, snr):
     """
     对模型加入高斯白噪声
-    
-    噪音强度为：10 ** (snr / 10)，其中snr为对应的信噪比
+
+    噪音强度为: 10 ** (snr / 10)，其中snr为对应的信噪比
     注：信号的幅度的平方==信号的功率，因此要开平方根
     :param x: 信号
     :param snr: 信噪比
@@ -51,13 +60,22 @@ def gs_noise(x, snr):
         return x + gaussian
 
 
+def obj_wrapper(func):
+    """对函数进行封装，方便对象的调用"""
+
+    def call_func(self, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    return call_func
+
+
 def criteria_loop_wrapper(func):
     """不同评价指标的装饰器"""
 
     def call_func(obj, *args, **kwargs):
         criteria_li = kwargs.get("criteria", config.criteria_list)
         for criteria in criteria_li:
-            func(obj, criteria=criteria, *args, **kwargs)
+            return func(obj, criteria=criteria, *args, **kwargs)
 
     return call_func
 
@@ -69,7 +87,7 @@ def model_snr_loop_wrapper(func):
         # obj 为该实例对象
         model_snrs = kwargs.get('model_snrs', config.model_SNRs)
         for model_snr in model_snrs:
-            func(obj, model_snr=model_snr, *args, **kwargs)
+            return func(obj, model_snr=model_snr, *args, **kwargs)
 
     return call_func
 
@@ -81,7 +99,7 @@ def ratio_loop_wrapper(func):
         # obj 为该实例对象
         r_list = kwargs.get('r_list', config.ratio_list)
         for ratio in r_list:
-            func(obj, ratio=ratio, *args, **kwargs)
+            return func(obj, ratio=ratio, *args, **kwargs)
 
     return call_func
 
@@ -93,7 +111,7 @@ def v_loop_wrapper(func):
         # obj 为该实例对象
         velocity = kwargs.get('v_list', config.velocity_list)
         for v in velocity:
-            func(obj, v=v, *args, **kwargs)
+            return func(obj, v=v, *args, **kwargs)
 
     return call_func
 
@@ -101,8 +119,8 @@ def v_loop_wrapper(func):
 def rec_mkdir(file_path):
     """
     以执行python程序的位置做为当前目录，递归创建文件夹，如果文件夹不存在，就创建，存在就跳过，继续下一层
-    file_path的格式为：dir/dir/dir/filename
-    
+    file_path的格式为: dir/dir/dir/filename
+
     """
     dir_list = file_path.split('/')[:-1]
     cur_dir = ""

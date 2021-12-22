@@ -11,6 +11,7 @@ from abc import ABCMeta, abstractmethod
 
 from libs import config
 from cs_restore_method import OMP, SP, SAMP, generate_fft_sparse_base, generate_dct_sparse_base
+from utils import nmse
 
 
 class CSConfiguration(object):
@@ -173,10 +174,10 @@ class BaseCS(metaclass=ABCMeta):
         """评估余弦相似度、mse损失"""
         data = torch.tensor(data)
         refine_data = torch.tensor(refine_data)
-        loss = F.mse_loss(data, refine_data)
+        nmse_ = nmse(refine_data, data, "torch")
         similarity = torch.cosine_similarity(data, refine_data, dim=0)
         capacity = torch.log2(torch.sum(1 + torch.linalg.svd(refine_data)[1] * self.snr / config.Nt))  # 信道容量:SVD分解
-        return similarity, loss, capacity
+        return similarity, nmse_, capacity
 
     def __cal_eval_result(self, loss_list, similarity_list, time_list, capacity_list):
         """计算平局损失、平均相似度与平均计算时间"""

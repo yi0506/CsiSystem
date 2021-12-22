@@ -9,8 +9,9 @@ from CSI_net import CsiNet, CSINetConfiguration
 from CSP_net import CSPNet, CSPNetConfiguration
 from CSI_net_stu import CSINetStuConfiguration, CSINetStu
 from utils import rec_mkdir, SingletonType
-from train_test import train, train_stu, test, csp_train, csp_test
-from csi_dataset import HS_CSDataset, RMNetDataset, CSINetDataset, RMStuNetDataset, CSPNetDataset, CSINetStuDataset, CSDataset
+from train_test import train, train_stu, csp_test, csp_train, test
+from csi_dataset import RMNetDataset, HS_CSINetDataset, RMStuNetDataset, CSPNetDataset, HS_CSINetStuDataset, HS_CSDataset
+from csi_dataset import COMM_CSDataset,  COMM_CSINetDataset, COMM_CSINetStuDataset
 from RMNet_stu import RMNetStu, RMStuNetConfiguration
 
 
@@ -64,12 +65,12 @@ class CSPNet_CSI(COMM_Net_CSI):
     NETWORK_NAME = CSPNetConfiguration.network_name  # 网络模型名称
     TRAIN_FUNC = csp_train
     TEST_FUNC = csp_test
-        
-        
-class CSINet_CSI(COMM_Net_CSI):
+
+
+class COMM_CSINet_CSI(COMM_Net_CSI):
     """CSINet CSI执行"""
     CSI_MODEL = CsiNet  # 执行CSI的模型
-    CSI_DATASET = CSINetDataset  # 执行CSI的模型的数据集
+    CSI_DATASET = COMM_CSINetDataset  # 执行CSI的模型的数据集
     NETWORK_NAME = CSINetConfiguration  # 网络模型名称
 
 
@@ -77,7 +78,7 @@ class COMM_NetStu_CSI(COMM_Net_CSI):
     """学生模型 CSI执行"""
     TEACHER = None
     TRAIN_FUNC = train_stu
-    
+
     def net_train(self, ratio, epoch=config.epoch, save_path: str = "") -> None:
         """在不同压缩率下，进行训练某个信噪比的模型"""
         stu = self.CSI_MODEL(ratio)
@@ -90,35 +91,35 @@ class COMM_NetStu_CSI(COMM_Net_CSI):
         self.TRAIN_FUNC(teacher, stu, epoch, save_path, dataloader, info)
 
 
-class CSINetStu_CSI(COMM_NetStu_CSI):
+class COMM_CSINetStu_CSI(COMM_NetStu_CSI):
     """CSINetStu CSI执行"""
     CSI_MODEL = CSINetStu
-    CSI_DATASET = CSINetStuDataset  # RMStuNet为学生模型，与教师模型使用同样数据集
+    CSI_DATASET = COMM_CSINetStuDataset  # RMStuNet为学生模型，与教师模型使用同样数据集
     NETWORK_NAME = CSINetStuConfiguration.network_name
     TEACHER = CsiNet
 
 
-class CS_CSI(metaclass=SingletonType):        
+class COMM_CS_CSI(metaclass=SingletonType):
     """CS 执行CSI"""
     RESTORE_DIC = dict()
     CS_TP = list()
-    DATASET = CSDataset
-    
+    DATASET = COMM_CSDataset
+
     def cs_register(self, cls, sparse, restore):
         """
         注册CS的方法
 
         cls: CS类
         sparse: 采用的稀疏基，"dct" 或者 "fft"
-        restore: 采用的恢复方法 
+        restore: 采用的恢复方法
 
         """
         self.CS_TP.append((sparse, restore))
         self.RESTORE_DIC[restore] = cls
-        
-    def CS_test(self, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
+
+    def cs_test(self, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在不同信噪比下对所有CS算法的评估，并将结果保存到文件中"""
-        data_loader = CSDataset().get_data_loader()
+        data_loader = HS_CSDataset().get_data_loader()
         for sparse, restore in self.CS_TP:
             result_dict = dict()
             full_sampling = False
@@ -137,7 +138,7 @@ class CS_CSI(metaclass=SingletonType):
 
     @ratio_loop_wrapper
     def CS_joint_test(self, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = ""):
-        self.CS_test(ratio, SNRs, save_ret, save_path) 
+        self.cs_test(ratio, SNRs, save_ret, save_path)
 
 
 class High_Speed_Net_CSI(metaclass=SingletonType):
@@ -154,7 +155,7 @@ class High_Speed_Net_CSI(metaclass=SingletonType):
         save_path = "./model/{}/HS/{}km/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, v, ratio, self.NETWORK_NAME) if not save_path else save_path
         info = "{}\t:v:{}\tratio:{}".format(self.NETWORK_NAME, v, ratio)
         dataloader = self.CSI_DATASET(True, v).get_data_loader()
-        train(model, epoch, save_path, dataloader, info)
+        self.TRAIN_FUNC(model, epoch, save_path, dataloader, info)
 
     @v_loop_wrapper
     @ratio_loop_wrapper
@@ -171,10 +172,10 @@ class High_Speed_Net_CSI(metaclass=SingletonType):
         data_loader = self.CSI_DATASET(False, v).get_data_loader()
         result_dict = dict()
         for snr in SNRs:
-            result_dict["{}dB".format(snr)] = test(model, data_loader, snr, info)
+            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, data_loader, snr, info)
         del model
         if save_ret:
-            save_path = "./test_result/{}/HS/{}km/{}/ratio_{}/{}.pkl".format(self.NETWORK_NAME, v, ratio, self.NETWORK_NAME) if not save_path else save_path
+            save_path = "./test_result/{}/HS/{}km/ratio_{}/{}.pkl".format(self.NETWORK_NAME, v, ratio, self.NETWORK_NAME) if not save_path else save_path
             rec_mkdir(save_path)
             pickle.dump(result_dict, open(save_path, "wb"))
 
@@ -183,12 +184,12 @@ class High_Speed_Net_CSI(metaclass=SingletonType):
     def net_joint_test(self, ratio, v, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在不同压缩率、不同速度的信道模型下，测试不同信噪比模型的效果"""
         self.net_test(ratio, v, SNRs, save_ret, save_path)
-        
 
-class HS_CS_CSI(CS_CSI):
+
+class HS_CS_CSI(COMM_CS_CSI):
     """高速移动环境下CS CSI执行"""
-    
-    def CS_test(self, v, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
+
+    def cs_test(self, v, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在不同信噪比下对所有CS算法的评估，并将结果保存到文件中"""
         data_loader = HS_CSDataset(v).get_data_loader()
         for sparse, restore in self.CS_TP:
@@ -210,7 +211,7 @@ class HS_CS_CSI(CS_CSI):
     @v_loop_wrapper
     @ratio_loop_wrapper
     def CS_joint_test(self, v, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = ""):
-        self.CS_test(v, ratio, SNRs, save_ret, save_path)
+        self.cs_test(v, ratio, SNRs, save_ret, save_path)
 
 
 class RMNet_CSI(High_Speed_Net_CSI):
@@ -223,7 +224,7 @@ class RMNet_CSI(High_Speed_Net_CSI):
 class HS_CSINet_CSI(High_Speed_Net_CSI):
     """csi net 执行CSI"""
     CSI_MODEL = CsiNet
-    CSI_DATASET = CSINetDataset
+    CSI_DATASET = HS_CSINetDataset
     NETWORK_NAME = CSINetConfiguration.network_name
 
 
@@ -231,7 +232,7 @@ class HS_NetStu_CSI(High_Speed_Net_CSI):
     """学生模型 CSI执行"""
     TEACHER = None
     TRAIN_FUNC = train_stu
-    
+
     def net_train(self, ratio, v, epoch=config.epoch, save_path: str = "") -> None:
         """在不同压缩率下，进行训练某个信噪比的模型"""
         stu = self.CSI_MODEL(ratio)
@@ -255,7 +256,7 @@ class RMNetStu_CSI(HS_NetStu_CSI):
 class HS_CSINetStu_CSI(HS_NetStu_CSI):
     """RM_stu_net CSI执行"""
     CSI_MODEL = CSINetStu
-    CSI_DATASET = CSINetStuDataset
+    CSI_DATASET = HS_CSINetStuDataset
     NETWORK_NAME = CSINetStuConfiguration.network_name
     TEACHER = HS_CSINet_CSI
 

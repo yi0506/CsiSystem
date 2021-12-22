@@ -8,24 +8,25 @@ from tqdm import tqdm
 import time
 
 import config
-from utils import rec_mkdir
+from utils import rec_mkdir, obj_wrapper, nmse
 
 
+@obj_wrapper
 def test(model, data_loader, snr, info: str = ""):
     """
     评估模型，并返回结果
-    
+
     model: 模型
     model_path: 模型的加载路径
     data_loader: 数据集迭代器
     snr: 加入噪声的信噪比
     info: 额外的结果描述信息
     model_snr: 加入某种信噪比噪声的情况下训练好的模型
-    
+
     """
     model.to(config.device).eval()
     # 测试模型在某个信噪比下的效果，作为模型的评价效果
-    loss_list = list()
+    nmse_list = list()
     similarity_list = list()
     time_list = list()
     capacity_list = list()
@@ -36,15 +37,15 @@ def test(model, data_loader, snr, info: str = ""):
             output = model(input_, snr)
             stop_time = time.time()
             cur_similarity = cosine_similarity(output, input_, dim=-1).mean().cpu().item()
-            cur_loss = mse_loss(output, input_).cpu().item()
+            cur_nmse = nmse(output, input_, "torch")
             cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
             capacity_list.append(cur_capacity / input_.size()[0])
-            loss_list.append(cur_loss / input_.size()[0])
+            nmse_list.append(cur_nmse / input_.size()[0])
             similarity_list.append(cur_similarity)
             time_list.append((stop_time - start_time) / input_.size()[0])
 
     # 计算平均相似度与损失
-    avg_loss = np.mean(loss_list)
+    avg_loss = np.mean(nmse_list)
     avg_similarity = np.mean(similarity_list)
     avg_time = np.mean(time_list)
     avg_capacity = np.mean(capacity_list)
@@ -52,20 +53,21 @@ def test(model, data_loader, snr, info: str = ""):
     return {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
 
 
+@obj_wrapper
 def csp_test(model, data_loader, snr, info: str = ""):
     """
     评估模型，并返回结果
-    
+
     model: 模型
     model_path: 模型的加载路径
     data_loader: 数据集迭代器
     snr: 加入噪声的信噪比
     info: 额外的结果描述信息
-    
+
     """
     model.to(config.device).eval()
     # 测试模型在某个信噪比下的效果，作为模型的评价效果
-    loss_list = list()
+    nmse_list = list()
     similarity_list = list()
     time_list = list()
     capacity_list = list()
@@ -77,15 +79,15 @@ def csp_test(model, data_loader, snr, info: str = ""):
             output = model(y, snr)
             stop_time = time.time()
             cur_similarity = cosine_similarity(output, target, dim=-1).mean().cpu().item()
-            cur_loss = mse_loss(output, target).cpu().item()
+            cur_nmse = nmse(output, target, "torch")
             cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
             capacity_list.append(cur_capacity / y.size()[0])
-            loss_list.append(cur_loss / y.size()[0])
+            nmse_list.append(cur_nmse / y.size()[0])
             similarity_list.append(cur_similarity)
             time_list.append((stop_time - start_time) / y.size()[0])
 
     # 计算平均相似度与损失
-    avg_loss = np.mean(loss_list)
+    avg_loss = np.mean(nmse_list)
     avg_similarity = np.mean(similarity_list)
     avg_time = np.mean(time_list)
     avg_capacity = np.mean(capacity_list)
@@ -93,10 +95,11 @@ def csp_test(model, data_loader, snr, info: str = ""):
     return {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
 
 
+@obj_wrapper
 def csp_train(model, epoch, save_path, data_loader, info):
     """
     进行模型训练
-    
+
     model: 模型
     epoch: 模型迭代次数
     save_path: 模型保存路径
@@ -109,7 +112,7 @@ def csp_train(model, epoch, save_path, data_loader, info):
     init_loss = 1
     for i in range(epoch):
         bar = tqdm(data_loader)
-        for idx, target, y in enumerate(bar):
+        for idx, (target, y) in enumerate(bar):
             optimizer.zero_grad()
             target = target.to(config.device)
             y = y.to(config.device)
@@ -118,7 +121,7 @@ def csp_train(model, epoch, save_path, data_loader, info):
             loss = F.mse_loss(output, target)
             loss.backward()
             optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i+1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i + 1, idx, loss.item(), similarity.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
@@ -127,11 +130,11 @@ def csp_train(model, epoch, save_path, data_loader, info):
                 return
 
 
-
+@obj_wrapper
 def train(model, epoch, save_path, data_loader, info):
     """
     进行模型训练
-    
+
     model: 模型
     epoch: 模型迭代次数
     save_path: 模型保存路径
@@ -152,7 +155,7 @@ def train(model, epoch, save_path, data_loader, info):
             loss.backward()  # 反向传播
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()  # 梯度更新
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i+1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i + 1, idx, loss.item(), similarity.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
@@ -161,10 +164,11 @@ def train(model, epoch, save_path, data_loader, info):
                 return
 
 
+@obj_wrapper
 def train_stu(teacher, stu, epoch, save_path, data_loader, info):
     """
     进行学生模型训练
-    
+
     teacher: 教师模型
     stu: 教师模型
     epoch: 模型迭代次数
@@ -187,7 +191,7 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
             loss = F.mse_loss(stu_output, teacher_ouput)
             loss.backward()
             optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i+1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i + 1, idx, loss.item(), similarity.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在

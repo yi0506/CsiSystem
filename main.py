@@ -5,7 +5,7 @@ from libs.RM_net import RMNetConfiguration
 from libs.CSI_net import CSINetConfiguration
 from libs.cs import CSConfiguration, SAMPCS, OMPCS, SPCS, DCTCS, FFTCS
 from libs.visual import HS_CSPlot, HS_NetPlot, HS_TimeForm
-from libs.CSI_Frame import RMNet_CSI, HS_CSINet_CSI, HS_CS_CSI, RMNetStu_CSI, CSINetStu_CSI, CSPNet_CSI
+from libs.CSI_Frame import RMNet_CSI, HS_CSINet_CSI, HS_CS_CSI, RMNetStu_CSI, COMM_CSINetStu_CSI, CSPNet_CSI
 
 
 class Xun_Lian_He_Ce_Shi(object):
@@ -15,7 +15,7 @@ class Xun_Lian_He_Ce_Shi(object):
         rmnet = RMNet_CSI()
         csinet = HS_CSINet_CSI()
         cspnet = CSPNet_CSI()
-        csinet_stu = CSINetStu_CSI()
+        csinet_stu = COMM_CSINetStu_CSI()
         rm_stu = RMNetStu_CSI()
         
         rm_stu.net_train()
