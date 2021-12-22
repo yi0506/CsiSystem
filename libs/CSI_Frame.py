@@ -28,7 +28,7 @@ class COMM_Net_CSI(metaclass=SingletonType):
         model = self.CSI_MODEL(ratio)
         save_path = "./model/{}/common/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
-        dataloader = self.CSI_DATASET(True, ratio).get_data_loader()
+        dataloader = self.CSI_DATASET(True,).get_data_loader()
         self.TRAIN_FUNC(model, epoch, save_path, dataloader, info)
 
     @ratio_loop_wrapper
@@ -42,7 +42,7 @@ class COMM_Net_CSI(metaclass=SingletonType):
         model_path = "./model/{}/common/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME)
         model.load_state_dict(torch.load(model_path), strict=False)
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
-        data_loader = self.CSI_DATASET(False, ratio).get_data_loader()
+        data_loader = self.CSI_DATASET(False).get_data_loader()
         result_dict = dict()
         for snr in SNRs:
             result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, data_loader, snr, info)

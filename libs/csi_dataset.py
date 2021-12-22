@@ -10,11 +10,10 @@ from libs import config
 
 class CsiDataset(Dataset):
     """CSI反馈的信道数据集"""
-
-    FILE_PATH = None  # 数据集的路径
-
+    
+    data = None  # 数据
+    
     class Configuration:
-        num_workers = 0  # 读取数据的线程数
         drop_last = False  # 丢弃最后一个不足batch size的数据集
         shuffle = True  # 是否打乱数据集
         collate_fn = None  # 对一个data_loader中batch size个数据的进行操作的函数指针
@@ -22,35 +21,42 @@ class CsiDataset(Dataset):
 
     def get_data_loader(self, **settings):
         """获取data_loader"""
-        return DataLoader(dataset=self, batch_size=self.Configuration.batch_size,
-                          num_workers=self.Configuration.num_workers, collate_fn=self.Configuration.collate_fn,
+        return DataLoader(dataset=self, batch_size=self.Configuration.batch_size, collate_fn=self.Configuration.collate_fn,
                           drop_last=self.Configuration.drop_last, shuffle=self.Configuration.shuffle, **settings)
-    
-    def get_data(self):
-        """获取数据"""
-        pass
 
 
 class COMM_Dataset(CsiDataset):
-    """一般环境数据集"""
-    
-    def get_data(self):
-        return np.load(self.FILE_PATH)
-    
+    """一般环境数据集""" 
     def __getitem__(self, idx):
         # 输入数据实shape为 [2048, ]
-        return self.get_data()[idx]
+        return self.data[idx]
 
     def __len__(self):
         """数据集大小"""
-        return self.get_data().shape[0]
+        return self.data.shape[0]
+
+
+class HS_Dataset(CsiDataset):
+    """高速环境神经网络数据集"""
+        
+    def __getitem__(self, idx):
+        real, img = self.data
+        # 输入数据实shape为 [2, 32, 32]
+        return np.concatenate((np.expand_dims(real[idx], axis=0), np.expand_dims(img[idx], axis=0)), axis=0)
+
+    def __len__(self):
+        return self.data[0].shape[0]
+    
+    def get_data(self, file_path):
+        return [h5py.File(file_path, "r")["save_H_real"][:], h5py.File(file_path, "r")["save_H_img"][:]]
 
 
 class COMM_CSDataset(COMM_Dataset):
     """压缩感知数据集"""
 
     def __init__(self):
-        self.FILE_PATH = r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
+        FILE_PATH = r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
+        self.data = np.load(FILE_PATH)
         self.Configuration.collate_fn = self.collate_fn
 
     def collate_fn(self, batch):
@@ -64,8 +70,15 @@ class COMM_CSINetDataset(COMM_Dataset):
         """
         :param is_train: 是否取训练集
         """
-        self.FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
+        FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
+        self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
+        self.data = np.load(FILE_PATH)
+        self.Configuration.collate_fn = self.collate_fn
 
+    def collate_fn(self, batch):
+        # 返回[batch, 2048]
+        return torch.FloatTensor(batch)
+    
 
 class COMM_CSINetStuDataset(COMM_CSINetDataset):
     """与COMM_CSINetDataset数据集相同"""
@@ -78,11 +91,12 @@ class CSPNetDataset(COMM_Dataset):
         """
         :param is_train: 是否取训练集
         """
-        self.FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
+        FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
         self.ratio = ratio
         self.y = None
         self.y_flag = False
         self.Configuration.collate_fn = self.collate_fn
+        self.data = np.load(FILE_PATH)
 
     def collate_fn(self, batch):
         target = torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
@@ -96,28 +110,14 @@ class CSPNetDataset(COMM_Dataset):
         return target, self.y
 
 
-class HS_Dataset(CsiDataset):
-    """高速环境神经网络数据集"""
-        
-    def get_data(self):
-        return h5py.File(self.FILE_PATH, "r")["save_H_real"], h5py.File(self.FILE_PATH, "r")["save_H_img"]
-    
-    def __getitem__(self, idx):
-        real, img = self.get_data()
-        # 输入数据实shape为 [2, 32, 32]
-        return np.concatenate((np.expand_dims(real[idx], axis=0), np.expand_dims(img[idx], axis=0)), axis=0)
-
-    def __len__(self):
-        return self.get_data()[0].shape[0]
-
-
 class HS_CSDataset(HS_Dataset):
     """高速移动环境下，压缩感知数据集"""
 
     def __init__(self, velocity):
-        self.FILE_PATH = r"{}/data/matlab/test_100_32_{}_H.mat".format(config.BASE_DIR, velocity)
+        FILE_PATH = r"{}/data/matlab/test_100_32_{}_H.mat".format(config.BASE_DIR, velocity)
+        self.data = self.get_data(FILE_PATH)
         self.Configuration.collate_fn = self.collate_fn
-    
+
     def collate_fn(self, batch):
         return batch[0].reshape(-1, 1)
 
@@ -131,7 +131,8 @@ class RMNetDataset(HS_Dataset):
         :param velocity: 速度
         """
         dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
-        self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
+        FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
+        self.data = self.get_data(FILE_PATH)
         self.Configuration.collate_fn = self.collate_fn
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
 
@@ -154,8 +155,14 @@ class HS_CSINetDataset(HS_Dataset):
         :param velocity: 速度
         """
         dataset = "test_10000_32_{}_H.mat".format(velocity) if is_train else r"test_100_32_{}_H.mat".format(velocity)
-        self.FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
+        FILE_PATH = r"{}/data/matlab/{}".format(config.BASE_DIR, dataset)
+        self.data = self.get_data(FILE_PATH)
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
+        self.Configuration.collate_fn = self.collate_fn
+
+    def collate_fn(self, batch):
+        # 返回[batch, 2, 32, 32]
+        return torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
 
 
 class HS_CSINetStuDataset(HS_CSINetDataset):
@@ -164,9 +171,9 @@ class HS_CSINetStuDataset(HS_CSINetDataset):
 
 
 if __name__ == '__main__':
-    data_loader = CSPNetDataset(True, 8).get_data_loader()
+    data_loader = HS_CSINetDataset(True, 50).get_data_loader()
     print(len(data_loader))
-    for idx, (target, y) in enumerate(tqdm(data_loader)):
-        print(target, y)
-        print(target.size(), y.size())
+    for idx, x in enumerate(tqdm(data_loader)):
+        print(x)
+        print(x.size())
         break

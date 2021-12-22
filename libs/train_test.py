@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 import torch
 import torch.nn as nn
-from torch.nn.functional import cosine_similarity, mse_loss
+from torch.nn.functional import cosine_similarity
 from tqdm import tqdm
 import time
 
@@ -117,11 +117,10 @@ def csp_train(model, epoch, save_path, data_loader, info):
             target = target.to(config.device)
             y = y.to(config.device)
             output = model(y, None)
-            similarity = torch.cosine_similarity(output, target, dim=-1).mean()
             loss = F.mse_loss(output, target)
             loss.backward()
             optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i + 1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}".format(i + 1, idx, loss.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
@@ -150,12 +149,11 @@ def train(model, epoch, save_path, data_loader, info):
             optimizer.zero_grad()  # 梯度置为零
             data = data.to(config.device)  # 转到GPU训练
             output = model(data, None)
-            similarity = torch.cosine_similarity(output, data, dim=-1).mean()  # 当前一个batch的相似度
             loss = F.mse_loss(output, data)  # 计算损失
             loss.backward()  # 反向传播
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()  # 梯度更新
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i + 1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}".format(i + 1, idx, loss.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
@@ -187,11 +185,10 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
             data = data.to(config.device)
             teacher_ouput = teacher(data, None)
             stu_output = stu(data, None)
-            similarity = torch.cosine_similarity(stu_output, teacher_ouput, dim=-1).mean()
             loss = F.mse_loss(stu_output, teacher_ouput)
             loss.backward()
             optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}\tsimilarity:{:.3f}".format(i + 1, idx, loss.item(), similarity.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:}".format(i + 1, idx, loss.item()))
             if loss.item() < init_loss:
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在

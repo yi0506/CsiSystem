@@ -60,7 +60,8 @@ class Encoder(nn.Module):
         
         """
         # 卷积
-        x = self.csi_conv1_combo(input_)  # [batch_size, 2, 32, 32]
+        x = input_.view(-1, CSINetConfiguration.channel_num, CSINetConfiguration.maxtrix_len, CSINetConfiguration.maxtrix_len)
+        x = self.csi_conv1_combo(x)  # [batch_size, 2, 32, 32]
         # 全连接
         x = x.view(-1, CSINetConfiguration.data_length)  # [batch_size, 2048]
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
@@ -101,7 +102,8 @@ class Decoder(nn.Module):
         x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
         x = res_unit(self.refine_net_2, x)  # [batch_size, 2, 32, 32]
         # 卷积
-        output = self.conv2d_combo(x)  # [batch_size, 2, 32, 32]
+        x = self.conv2d_combo(x)  # [batch_size, 2, 32, 32]
+        output = x.view(-1, CSINetConfiguration.data_length)
         return output
 
 
