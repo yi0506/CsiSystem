@@ -28,7 +28,7 @@ class COMM_Net_CSI(metaclass=SingletonType):
         model = self.CSI_MODEL(ratio)
         save_path = "./model/{}/common/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
-        dataloader = self.CSI_DATASET(True,).get_data_loader()
+        dataloader = self.CSI_DATASET(True).get_data_loader()
         self.TRAIN_FUNC(model, epoch, save_path, dataloader, info)
 
     @ratio_loop_wrapper
@@ -66,12 +66,36 @@ class CSPNet_CSI(COMM_Net_CSI):
     TRAIN_FUNC = csp_train
     TEST_FUNC = csp_test
 
+    def net_train(self, ratio, epoch=config.epoch, save_path: str = "") -> None:
+        """在不同压缩率下，进行训练某个信噪比的模型"""
+        model = self.CSI_MODEL(ratio)
+        save_path = "./model/{}/common/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
+        info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
+        dataloader = self.CSI_DATASET(True, ratio).get_data_loader()
+        self.TRAIN_FUNC(model, epoch, save_path, dataloader, info)
+
+    def net_test(self, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
+        """在某个压缩率，测试不同信噪比下模型的效果"""
+        model = self.CSI_MODEL(ratio)
+        model_path = "./model/{}/common/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME)
+        model.load_state_dict(torch.load(model_path), strict=False)
+        info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
+        data_loader = self.CSI_DATASET(False, ratio).get_data_loader()
+        result_dict = dict()
+        for snr in SNRs:
+            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, data_loader, snr, info)
+        del model
+        if save_ret:
+            save_path = "./test_result/{}/common/ratio_{}/{}.pkl".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
+            rec_mkdir(save_path)
+            pickle.dump(result_dict, open(save_path, "wb"))
+
 
 class COMM_CSINet_CSI(COMM_Net_CSI):
     """CSINet CSI执行"""
     CSI_MODEL = CsiNet  # 执行CSI的模型
     CSI_DATASET = COMM_CSINetDataset  # 执行CSI的模型的数据集
-    NETWORK_NAME = CSINetConfiguration  # 网络模型名称
+    NETWORK_NAME = CSINetConfiguration.network_name  # 网络模型名称
 
 
 class COMM_NetStu_CSI(COMM_Net_CSI):

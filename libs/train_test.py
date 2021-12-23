@@ -45,12 +45,12 @@ def test(model, data_loader, snr, info: str = ""):
             time_list.append((stop_time - start_time) / input_.size()[0])
 
     # 计算平均相似度与损失
-    avg_loss = np.mean(nmse_list)
+    avg_nmse = np.mean(nmse_list)
     avg_similarity = np.mean(similarity_list)
     avg_time = np.mean(time_list)
     avg_capacity = np.mean(capacity_list)
-    print(info + "\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, avg_loss, avg_similarity, avg_time, avg_capacity))
-    return {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
+    print(info + "\tSNR:{}dB\tnmse:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, avg_nmse, avg_similarity, avg_time, avg_capacity))
+    return {"相似度": avg_similarity, "NMSE": avg_nmse, "time": avg_time, "Capacity": avg_capacity}
 
 
 @obj_wrapper
@@ -87,12 +87,12 @@ def csp_test(model, data_loader, snr, info: str = ""):
             time_list.append((stop_time - start_time) / y.size()[0])
 
     # 计算平均相似度与损失
-    avg_loss = np.mean(nmse_list)
+    nmse_loss = np.mean(nmse_list)
     avg_similarity = np.mean(similarity_list)
     avg_time = np.mean(time_list)
     avg_capacity = np.mean(capacity_list)
-    print(info + "\tSNR:{}dB\tloss:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, avg_loss, avg_similarity, avg_time, avg_capacity))
-    return {"相似度": avg_similarity, "NMSE": avg_loss, "time": avg_time, "Capacity": avg_capacity}
+    print(info + "\tSNR:{}dB\tnmse:{:.3f}\tsimilarity:{:.3f}\ttime:{:.4f}\tcapacity:{:.4f}".format(snr, nmse_loss, avg_similarity, avg_time, avg_capacity))
+    return {"相似度": avg_similarity, "NMSE": nmse_loss, "time": avg_time, "Capacity": avg_capacity}
 
 
 @obj_wrapper

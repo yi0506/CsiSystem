@@ -4,20 +4,22 @@ import torch
 from tqdm import tqdm
 import h5py
 import numpy as np
+import platform
 
 from libs import config
 
 
 class CsiDataset(Dataset):
     """CSI反馈的信道数据集"""
-    
+
     data = None  # 数据
-    
+
     class Configuration:
         drop_last = False  # 丢弃最后一个不足batch size的数据集
         shuffle = True  # 是否打乱数据集
         collate_fn = None  # 对一个data_loader中batch size个数据的进行操作的函数指针
         batch_size = 1  # 一个读取的数据量
+        num_workers = 0  if platform.system() =="Windows" else 4 # 读取数据的线程数
 
     def get_data_loader(self, **settings):
         """获取data_loader"""
@@ -26,7 +28,7 @@ class CsiDataset(Dataset):
 
 
 class COMM_Dataset(CsiDataset):
-    """一般环境数据集""" 
+    """一般环境数据集"""
     def __getitem__(self, idx):
         # 输入数据实shape为 [2048, ]
         return self.data[idx]
@@ -38,7 +40,7 @@ class COMM_Dataset(CsiDataset):
 
 class HS_Dataset(CsiDataset):
     """高速环境神经网络数据集"""
-        
+
     def __getitem__(self, idx):
         real, img = self.data
         # 输入数据实shape为 [2, 32, 32]
@@ -46,7 +48,7 @@ class HS_Dataset(CsiDataset):
 
     def __len__(self):
         return self.data[0].shape[0]
-    
+
     def get_data(self, file_path):
         return [h5py.File(file_path, "r")["save_H_real"][:], h5py.File(file_path, "r")["save_H_img"][:]]
 
@@ -78,7 +80,7 @@ class COMM_CSINetDataset(COMM_Dataset):
     def collate_fn(self, batch):
         # 返回[batch, 2048]
         return torch.FloatTensor(batch)
-    
+
 
 class COMM_CSINetStuDataset(COMM_CSINetDataset):
     """与COMM_CSINetDataset数据集相同"""
@@ -97,6 +99,7 @@ class CSPNetDataset(COMM_Dataset):
         self.y_flag = False
         self.Configuration.collate_fn = self.collate_fn
         self.data = np.load(FILE_PATH)
+        self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
 
     def collate_fn(self, batch):
         target = torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
@@ -171,7 +174,7 @@ class HS_CSINetStuDataset(HS_CSINetDataset):
 
 
 if __name__ == '__main__':
-    data_loader = HS_CSINetDataset(True, 50).get_data_loader()
+    data_loader = COMM_CSINetDataset(True).get_data_loader()
     print(len(data_loader))
     for idx, x in enumerate(tqdm(data_loader)):
         print(x)
