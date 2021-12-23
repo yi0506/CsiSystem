@@ -7,6 +7,7 @@ import numpy as np
 import platform
 
 from libs import config
+from libs.cs import CSConfiguration
 
 
 class CsiDataset(Dataset):
@@ -24,7 +25,7 @@ class CsiDataset(Dataset):
     def get_data_loader(self, **settings):
         """获取data_loader"""
         return DataLoader(dataset=self, batch_size=self.Configuration.batch_size, collate_fn=self.Configuration.collate_fn,
-                          drop_last=self.Configuration.drop_last, shuffle=self.Configuration.shuffle, **settings)
+                          drop_last=self.Configuration.drop_last, shuffle=self.Configuration.shuffle, num_workers=self.Configuration.num_workers, **settings)
 
 
 class COMM_Dataset(CsiDataset):

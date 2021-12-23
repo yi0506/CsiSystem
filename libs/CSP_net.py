@@ -4,7 +4,7 @@ import torch.nn as nn
 from torchsummary import summary
 
 import config
-from utils import res_unit, net_normalize, gs_noise
+from utils import res_unit, net_standardization, gs_noise
 
 
 class CSPNetConfiguration(object):
@@ -42,7 +42,7 @@ class CSPNet(nn.Module):
         if snr is not None:
             y = gs_noise(y, snr)
         # 标准化
-        x = net_normalize(y)  # [batch_size, 2048/ratio]
+        x = net_standardization(y)  # [batch_size, 2048/ratio]
         # 全连接
         x = self.fc_restore(y)  # [batch_size, 2048]
         x = x.view(-1, CSPNetConfiguration.channel_num, CSPNetConfiguration.maxtrix_len, CSPNetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]

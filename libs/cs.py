@@ -11,7 +11,7 @@ from abc import ABCMeta, abstractmethod
 
 from libs import config
 from cs_restore_method import OMP, SP, SAMP, generate_fft_sparse_base, generate_dct_sparse_base
-from utils import nmse
+from utils import nmse, normalized
 
 
 class CSConfiguration(object):
@@ -129,7 +129,7 @@ class BaseCS(metaclass=ABCMeta):
         if not self.full_sampling:
             Fi = np.random.randn(Fi_m, dim)  # 确定观测矩阵大小
             y = np.matmul(Fi, data)  # 观测向量
-            Beta = np.matmul(Fi, self.sparse_matrix)  # 传感矩阵
+            Beta = normalized(np.matmul(Fi, self.sparse_matrix))  # 传感矩阵
             # 确定稀疏度k
             k = CSConfiguration.k
         else:

@@ -6,6 +6,10 @@ import numpy as np
 from libs import config
 
 
+def normalized(x):
+    """将数据归一化"""
+    return (x - np.min(x)) / (np.max(x) - np.min(x))
+
 def nmse(a, target, dtype):
     """计算张量a和target的NMSE"""
     if dtype == "torch":
@@ -33,7 +37,7 @@ def res_unit(func, input_):
     return output
 
 
-def net_normalize(input_):
+def net_standardization(input_):
     """ 标准化处理"""
     mean = torch.mean(input_, dim=-1, keepdim=True)
     std = torch.std(input_, dim=-1, keepdim=True)

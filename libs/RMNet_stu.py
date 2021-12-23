@@ -1,7 +1,7 @@
 """csi网络模型"""
 import torch.nn as nn
 
-from utils import gs_noise, res_unit, net_normalize
+from utils import gs_noise, res_unit, net_standardization
 
 
 class RMStuNetConfiguration(object):
@@ -55,7 +55,7 @@ class Encoder(nn.Module):
         :return: [batch_size, 2048/ratio]
         """
         # 标准化
-        x = net_normalize(input_)  # [batch_size, 2048]
+        x = net_standardization(input_)  # [batch_size, 2048]
         x = x.view(-1, RMStuNetConfiguration.channel_num, RMStuNetConfiguration.maxtrix_len, RMStuNetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
         # 分组卷积
         x = res_unit(self.group_conv_combo, x)  # [batch_size, 8, 32, 32]
@@ -86,7 +86,7 @@ class Decoder(nn.Module):
         :return: [batch_size, 32*32]
         """
         # 标准化
-        x = net_normalize(x)  # [batch_size, 2048/ratio]
+        x = net_standardization(x)  # [batch_size, 2048/ratio]
         # 全连接
         x = self.restore_fc(x)  # [batch_size, 2048]
         x = x.view(-1, RMStuNetConfiguration.channel_num, RMStuNetConfiguration.maxtrix_len, RMStuNetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
