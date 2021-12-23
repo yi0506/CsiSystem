@@ -30,7 +30,7 @@ def test(model, data_loader, snr, info: str = ""):
     similarity_list = list()
     time_list = list()
     capacity_list = list()
-    for _, input_ in enumerate(tqdm(data_loader)):
+    for _, input_ in enumerate(data_loader):
         with torch.no_grad():
             input_ = input_.to(config.device)
             start_time = time.time()
@@ -71,7 +71,7 @@ def csp_test(model, data_loader, snr, info: str = ""):
     similarity_list = list()
     time_list = list()
     capacity_list = list()
-    for _, (target, y) in enumerate(tqdm(data_loader)):
+    for _, (target, y) in enumerate(data_loader):
         with torch.no_grad():
             target = target.to(config.device)
             y = y.to(config.device)
