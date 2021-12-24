@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 """各类压缩感知算法的封装并集成在CSI反馈系统中"""
 import numpy as np
-import torch.nn.functional as F
 import torch
 import pickle
 import tqdm
@@ -92,7 +91,7 @@ class BaseCS(metaclass=ABCMeta):
     def run(self):
         """主函数：对数据进行压缩、重构、计算相似度与损失，然后返回测试结果"""
         similarity_list = list()
-        loss_list = list()
+        nmse_list = list()
         time_list = list()
         capacity_list = list()
         bar = tqdm.tqdm(self.data_loader)
@@ -106,15 +105,15 @@ class BaseCS(metaclass=ABCMeta):
             restore_data = self.__restore(self.restore, y_add_noise, Beta, k)
             stop_time = time.time()  # 结束时间
             # 计算相似度、损失、消耗的时间
-            similarity, loss, capacity = self.__evaluate(data, restore_data)
+            similarity, nmse, capacity = self.__evaluate(data, restore_data)
             similarity_list.append(similarity.item())
-            loss_list.append(loss.item())
+            nmse_list.append(nmse.item())
             time_list.append(stop_time-start_time)
             capacity_list.append(capacity)
             # 显示进度
-            bar.set_description("ratio:{}\t{}:{}\tnoise_SNR:{}dB\tloss:{}\tsimilarity:{:.3f}\tcapacity:{}".format(self.ratio, self.sparse, self.restore, self.snr, loss.item(), similarity.item(), capacity.item()))
+            bar.set_description("ratio:{}\t{}:{}\tnoise_SNR:{}dB\tnmse:{}\tsimilarity:{:.3f}\tcapacity:{}".format(self.ratio, self.sparse, self.restore, self.snr, nmse.item(), similarity.item(), capacity.item()))
         # 将测试结果返回
-        return self.__cal_eval_result(loss_list, similarity_list, time_list, capacity_list)
+        return self.__cal_eval_result(nmse_list, similarity_list, time_list, capacity_list)
 
     def __compress(self, data):
         """
@@ -179,15 +178,15 @@ class BaseCS(metaclass=ABCMeta):
         capacity = torch.log2(torch.sum(1 + torch.linalg.svd(refine_data)[1] * self.snr / config.Nt))  # 信道容量:SVD分解
         return similarity, nmse_, capacity
 
-    def __cal_eval_result(self, loss_list, similarity_list, time_list, capacity_list):
+    def __cal_eval_result(self, nmse_list, similarity_list, time_list, capacity_list):
         """计算平局损失、平均相似度与平均计算时间"""
-        avg_loss = np.mean(loss_list)
+        avg_nmse = np.mean(nmse_list)
         avg_similarity = np.mean(similarity_list)
         avg_time = np.mean(time_list)
         avg_capacity = np.mean(capacity_list)
 
         # 保存结果到字典中并返回
-        return {"snr": self.snr, "NMSE": avg_loss, "相似度": avg_similarity, "time": avg_time, "Capacity": avg_capacity}
+        return {"snr": self.snr, "NMSE": avg_nmse, "相似度": avg_similarity, "time": avg_time, "Capacity": avg_capacity}
 
     @staticmethod
     def __gs_noise(y, snr):

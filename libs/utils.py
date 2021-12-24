@@ -1,5 +1,6 @@
 import os
 import threading
+from numpy.lib.function_base import diff
 import torch
 import numpy as np
 
@@ -13,9 +14,13 @@ def normalized(x):
 def nmse(a, target, dtype):
     """计算张量a和target的NMSE"""
     if dtype == "torch":
-        return (10 * torch.log10(torch.div(torch.sum(torch.pow(torch.sub(a, target), 2)), torch.sum(torch.pow(a, 2))))).item()
+        power = target ** 2
+        difference = (target - a) ** 2
+        return (10 * torch.log10(difference.sum(dim=-1) / power.sum(dim=-1))).mean().item()
     elif dtype == "np":
-        return (10 * np.log10(np.divide(np.sum(np.power(np.subtract(a, target), 2)), np.sum(np.power(a, 2))))).item()
+        power = target ** 2
+        difference = (target - a) ** 2
+        return (10 * np.log10(difference.sum(axis=-1) / power.sum(axis=-1))).mean().item()
 
 
 class SingletonType(type):

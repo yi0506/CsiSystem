@@ -7,7 +7,6 @@ import numpy as np
 import platform
 
 from libs import config
-from libs.cs import CSConfiguration
 
 
 class CsiDataset(Dataset):
