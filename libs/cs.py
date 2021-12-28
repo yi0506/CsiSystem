@@ -10,7 +10,7 @@ from abc import ABCMeta, abstractmethod
 
 from libs import config
 from cs_restore_method import OMP, SP, SAMP, generate_fft_sparse_base, generate_dct_sparse_base
-from utils import nmse, normalized
+from utils import nmse, load_Phi
 
 
 class CSConfiguration(object):
@@ -47,7 +47,7 @@ class BaseCS(metaclass=ABCMeta):
 
     def __init__(self, **kwargs):
         """
-        参数与变量：
+        参数与变量:
                 y: 观测向量 [m, 1]
                 data: 原始信号向量 [n, 1]
                 s: data在稀疏基A下的稀疏表示
@@ -57,8 +57,8 @@ class BaseCS(metaclass=ABCMeta):
                 sparse: 压缩方法
                 restore: 重构方法
                 A: 稀疏基矩阵
-                Fi： 观测矩阵
-                t：步长
+                Fi: 观测矩阵
+                t: 步长
 
 
         初始化属性:
@@ -78,13 +78,13 @@ class BaseCS(metaclass=ABCMeta):
     @staticmethod
     def load_sparse_base(method):
         if method == "DCT":
-            if not os.path.exists("./data/dct_sp.pkl"):
+            if not os.path.exists("./data/CS/dct_sp.pkl"):
                 generate_dct_sparse_base(CSConfiguration.cs_data_length)
-            return pickle.load(open("./data/dct_sp.pkl", "rb"))  # 获得稀疏基
+            return pickle.load(open("./data/CS/dct_sp.pkl", "rb"))  # 获得稀疏基
         elif method == "FFT":
-            if not os.path.exists("./data/fft_sp.pkl"):
+            if not os.path.exists("./data/CS/fft_sp.pkl"):
                 generate_fft_sparse_base(CSConfiguration.cs_data_length)
-            return pickle.load(open("./data/fft_sp.pkl", "rb"))  # 获得稀疏基
+            return pickle.load(open("./data/CS/fft_sp.pkl", "rb"))  # 获得稀疏基
         else:
             exit("压缩方法错误")
 
@@ -123,21 +123,23 @@ class BaseCS(metaclass=ABCMeta):
         :param data:[?, 1]
         :return: 传感矩阵beta，压缩后的数据y,稀疏度k
         """
-        Fi_m = CSConfiguration.cs_data_length // self.ratio  # 得到观测矩阵的行数
+        Phi_m = CSConfiguration.cs_data_length // self.ratio  # 得到观测矩阵的行数
         dim = data.shape[0]
         if not self.full_sampling:
-            Fi = np.random.randn(Fi_m, dim)  # 确定观测矩阵大小
-            y = np.matmul(Fi, data)  # 观测向量
-            Beta = normalized(np.matmul(Fi, self.sparse_matrix))  # 传感矩阵
+            # 加载观测矩阵
+            Phi_path = "{}/data/CS/Phi_{}.npy".format(config.BASE_DIR, Phi_m)
+            Phi = load_Phi(Phi_path)
+            y = np.matmul(Phi, data)  # 观测向量
+            Beta = np.matmul(Phi, self.sparse_matrix)  # 传感矩阵
             # 确定稀疏度k
             k = CSConfiguration.k
         else:
             Beta = None
             k = None
             y = np.matmul(self.sparse_matrix, data)
-            # 只保留前Fi_m个绝对值最大的元素,其余置为0, Fi_m = data_length / Fi_ratio
+            # 只保留前Phi_m个绝对值最大的元素,其余置为0, Phi_m = data_length / Fi_ratio
             temp_y = np.abs(y)
-            temp_max = np.sort(temp_y, axis=0)[dim - Fi_m]
+            temp_max = np.sort(temp_y, axis=0)[dim - Phi_m]
             y[temp_y < temp_max] = 0
         return y, Beta, k
 

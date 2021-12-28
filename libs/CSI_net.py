@@ -47,12 +47,11 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.ratio = ratio  # 压缩率
         self.csi_conv1_combo = nn.Sequential(
-            nn.Conv2d(in_channels=CSINetConfiguration.channel_num, out_channels=CSINetConfiguration.channel_num,
-                      kernel_size=CSINetConfiguration.kerner_size, stride=CSINetConfiguration.stride, padding=CSINetConfiguration.padding),
-            nn.BatchNorm2d(CSINetConfiguration.channel_num),
-            nn.LeakyReLU(CSINetConfiguration.leak_relu_slope)
+            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1),
+            nn.BatchNorm2d(2),
+            nn.LeakyReLU(0.3)
         )
-        self.fc_compress = nn.Linear(CSINetConfiguration.data_length, CSINetConfiguration.data_length // ratio)
+        self.fc_compress = nn.Linear(2048, 2048 // ratio)
 
     def forward(self, input_):
         """
@@ -60,10 +59,10 @@ class Encoder(nn.Module):
 
         """
         # 卷积
-        x = input_.view(-1, CSINetConfiguration.channel_num, CSINetConfiguration.maxtrix_len, CSINetConfiguration.maxtrix_len)
+        x = input_.view(-1, 2, 32, 32)
         x = self.csi_conv1_combo(x)  # [batch_size, 2, 32, 32]
         # 全连接
-        x = x.view(-1, CSINetConfiguration.data_length)  # [batch_size, 2048]
+        x = x.view(-1, 2048)  # [batch_size, 2048]
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
         return output
 
@@ -74,22 +73,21 @@ class Decoder(nn.Module):
     def __init__(self, ratio):
         super(Decoder, self).__init__()
         self.ratio = ratio  # 信道矩阵通道数
-        self.fc_restore = nn.Linear(CSINetConfiguration.data_length // ratio, CSINetConfiguration.data_length)
-        self.refine_net_1 = RefineNet(CSINetConfiguration.channel_num, CSINetConfiguration.channel_num)
-        self.refine_net_2 = RefineNet(CSINetConfiguration.channel_num, CSINetConfiguration.channel_num)
+        self.fc_restore = nn.Linear(2048 // ratio, 2048)
+        self.refine_net_1 = RefineNet(2, 2)
+        self.refine_net_2 = RefineNet(2, 2)
         self.conv2d_combo = nn.Sequential(
-            nn.Conv2d(in_channels=CSINetConfiguration.channel_num, out_channels=CSINetConfiguration.channel_num,
-                      kernel_size=CSINetConfiguration.kerner_size, stride=CSINetConfiguration.stride,
-                      padding=CSINetConfiguration.stride),
-            nn.BatchNorm2d(CSINetConfiguration.channel_num),
+            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1),
+            nn.BatchNorm2d(2),
+            nn.Sigmoid()
         )
 
     def forward(self, encoder_output):
         """
         由于训练数据形状为[batch_size, 2048]，
-        因此最后需要reshape操作：[batch_size, 2, 32, 32] -----> [batch_size,  2048]，变为原来的形状
+        因此最后需要reshape操作: [batch_size, 2, 32, 32] -----> [batch_size,  2048]，变为原来的形状
 
-        数据解压缩：
+        数据解压缩:
         全连接 ----> reshape ----> 残差（refine_net） ----> 残差（refine_net） -----> 卷积  -----> reshape
 
         :param encoder_output: [batch_size,  2048/ratio]
@@ -98,13 +96,13 @@ class Decoder(nn.Module):
 
         # 全连接
         x = self.fc_restore(encoder_output)  # [batch_size, 2048]
-        x = x.view(-1, CSINetConfiguration.channel_num, CSINetConfiguration.maxtrix_len, CSINetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # refine_net
         x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
         x = res_unit(self.refine_net_2, x)  # [batch_size, 2, 32, 32]
         # 卷积
         x = self.conv2d_combo(x)  # [batch_size, 2, 32, 32]
-        output = x.view(-1, CSINetConfiguration.data_length)
+        output = x.view(-1, 2048)
         return output
 
 
@@ -112,16 +110,13 @@ class RefineNet(nn.Module):
 
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=CSINetConfiguration.kerner_size,
-                                 stride=CSINetConfiguration.stride, padding=CSINetConfiguration.padding)
+        self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=3, padding=1)
         self.bn2d_1 = nn.BatchNorm2d(8)
-        self.leak_relu_1 = nn.LeakyReLU(CSINetConfiguration.leak_relu_slope)
-        self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=CSINetConfiguration.kerner_size,
-                                 stride=CSINetConfiguration.stride, padding=CSINetConfiguration.padding)
+        self.leak_relu_1 = nn.LeakyReLU(0.3)
+        self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, padding=1)
         self.bn2d_2 = nn.BatchNorm2d(16)
-        self.leak_relu_2 = nn.LeakyReLU(CSINetConfiguration.leak_relu_slope)
-        self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=CSINetConfiguration.kerner_size,
-                                 stride=CSINetConfiguration.stride, padding=CSINetConfiguration.padding)
+        self.leak_relu_2 = nn.LeakyReLU(0.3)
+        self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=3, padding=1)
         self.bn2d_3 = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
@@ -130,6 +125,7 @@ class RefineNet(nn.Module):
         x = self.leak_relu_1(x)
         x = self.con2d_2(x)
         x = self.bn2d_2(x)
+        x = self.leak_relu_2(x)
         x = self.con2d_3(x)
         output = self.bn2d_3(x)
         return output

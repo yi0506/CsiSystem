@@ -4,7 +4,7 @@ import torch.nn as nn
 from utils import gs_noise, res_unit, net_standardization
 
 
-class RMStuNetConfiguration(object):
+class RMNetStuConfiguration(object):
     """RMStuNet 属性参数"""
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
@@ -43,10 +43,10 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.ratio = ratio
         self.group_conv_combo = nn.Sequential(
-            Conv2DWrapper(2, 8, RMStuNetConfiguration.kerner_size, RMStuNetConfiguration.stride, RMStuNetConfiguration.padding, 2),
-            Conv2DWrapper(8, 2, RMStuNetConfiguration.kerner_size, RMStuNetConfiguration.stride, RMStuNetConfiguration.padding, 2),
+            Conv2DWrapper(2, 8, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2),
+            Conv2DWrapper(8, 2, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2),
         )
-        self.fc_compress = LinearWrapper(RMStuNetConfiguration.data_length, RMStuNetConfiguration.data_length // self.ratio)
+        self.fc_compress = LinearWrapper(RMNetStuConfiguration.data_length, RMNetStuConfiguration.data_length // self.ratio)
 
     def forward(self, input_):
         """
@@ -56,10 +56,10 @@ class Encoder(nn.Module):
         """
         # 标准化
         x = net_standardization(input_)  # [batch_size, 2048]
-        x = x.view(-1, RMStuNetConfiguration.channel_num, RMStuNetConfiguration.maxtrix_len, RMStuNetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        x = x.view(-1, RMNetStuConfiguration.channel_num, RMNetStuConfiguration.maxtrix_len, RMNetStuConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
         # 分组卷积
         x = res_unit(self.group_conv_combo, x)  # [batch_size, 8, 32, 32]
-        x = x.view(-1, RMStuNetConfiguration.data_length)  # [batch_size, 2048]
+        x = x.view(-1, RMNetStuConfiguration.data_length)  # [batch_size, 2048]
         # 全连接
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
         return output
@@ -71,11 +71,11 @@ class Decoder(nn.Module):
     def __init__(self, ratio):
         super(Decoder, self).__init__()
         self.ratio = ratio
-        self.restore_fc = LinearWrapper(RMStuNetConfiguration.data_length // ratio,  RMStuNetConfiguration.data_length)
+        self.restore_fc = LinearWrapper(RMNetStuConfiguration.data_length // ratio,  RMNetStuConfiguration.data_length)
         self.group_conv_combo = nn.Sequential(
-            Conv2DWrapper(2, 8, RMStuNetConfiguration.kerner_size, RMStuNetConfiguration.stride, RMStuNetConfiguration.padding, 2),
-            Conv2DWrapper(8, 8, RMStuNetConfiguration.kerner_size, RMStuNetConfiguration.stride, RMStuNetConfiguration.padding, 4),
-            Conv2DWrapper(8, 2, RMStuNetConfiguration.kerner_size, RMStuNetConfiguration.stride, RMStuNetConfiguration.padding, 2)
+            Conv2DWrapper(2, 8, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2),
+            Conv2DWrapper(8, 8, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 4),
+            Conv2DWrapper(8, 2, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2)
         )
         
     def forward(self, x):
@@ -89,10 +89,10 @@ class Decoder(nn.Module):
         x = net_standardization(x)  # [batch_size, 2048/ratio]
         # 全连接
         x = self.restore_fc(x)  # [batch_size, 2048]
-        x = x.view(-1, RMStuNetConfiguration.channel_num, RMStuNetConfiguration.maxtrix_len, RMStuNetConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        x = x.view(-1, RMNetStuConfiguration.channel_num, RMNetStuConfiguration.maxtrix_len, RMNetStuConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
         # 分组卷积
         x = res_unit(self.group_conv_combo, x)  # [batch_size, 32, 32 ,32]
-        output = x.view(-1, RMStuNetConfiguration.data_length)  # [batch_size, 2*32*32]
+        output = x.view(-1, RMNetStuConfiguration.data_length)  # [batch_size, 2*32*32]
         return output
 
 

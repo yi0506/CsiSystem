@@ -2,16 +2,49 @@ import os
 import threading
 import torch
 import numpy as np
+from sympy.matrices import Matrix, GramSchmidt
+import torch.nn.functional as F
 
 from libs import config
 
 
+def load_Phi(Phi_path, raw=None, col=None):
+    """加载观测矩阵Phi"""
+    if os.path.exists(Phi_path):
+        Phi = np.load(Phi_path)
+    else:
+        Phi = orthogo_matrix(np.random.randn(raw, col))
+        np.save(Phi_path, Phi)
+    return Phi
+
+
+def orthogo_matrix(x):
+    """按行施密特单位正交化，x为numpy数组"""
+    # 每一个行向量进行施密特正交化
+    m, n = x.shape
+    # 将numpy矩阵转为sympy的向量集合
+    MA = [Matrix(col) for col in x]
+    # 施密特正交化
+    gram = GramSchmidt(MA)
+    ort_list = []
+    for i in range(m):
+        vector = []
+        for j in range(n):
+            vector.append(float(gram[i][j]))  # 需要将sympy.core.numbers.Float转为float类型
+        ort_list.append(vector)
+    # 单位化
+    ort_list = torch.tensor(ort_list)
+    ort_list = F.normalize(ort_list, dim=1)
+    return ort_list.numpy()
+
+
 def normalized(x):
-    """将数据归一化"""
+    """将数据 min-max 归一化"""
     return (x - np.min(x)) / (np.max(x) - np.min(x))
 
+
 def nmse(a, target, dtype):
-    """计算张量a和target的NMSE"""
+    """计算一个batch的a和target的NMSE"""
     if dtype == "torch":
         power = target ** 2
         difference = (target - a) ** 2
