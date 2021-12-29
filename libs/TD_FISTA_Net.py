@@ -7,8 +7,7 @@ from utils import gs_noise
 
 class TDFISTANetConfiguration(object):
     """ISTANetplus配置"""
-    layer_num = 10
-    data_length = 2048
+    layer_num = 9
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
     data_length = 2048  # 信号矩阵变成一维向量后的长度 2048 == 2 * 32 *32
@@ -44,9 +43,9 @@ class TDFISTANet(torch.nn.Module):
         
         # 信号恢复
         # (2048, m) * (m, 2048) = (2048, 2048)
-        PhiTPhi = torch.mm(torch.transpose(self.Phi, 0, 1), self.Phi)
+        PhiTPhi = torch.mm(torch.transpose(self.td.Phi, 0, 1), self.td.Phi)
         # (batch, m) * (m, 2048) = (batch, 2048)
-        PhiTb = torch.mm(Phix, self.Phi)
+        PhiTb = torch.mm(Phix, self.td.Phi)
         # x_0 = y * Qinit.T   (batch, m) * (m, 2048) = (batch, 2048)
         x = torch.mm(Phix, torch.transpose(Qinit, 0, 1))
         layers_sym = []   # for computing symmetric loss
@@ -67,7 +66,7 @@ class TDBlock(torch.nn.Module):
     """时间差分模块"""
     def __init__(self, ratio) -> None:
         super().__init__()
-        self.gamma = nn.parameter(torch.Tensor([0.1]))  # 时间差分系数
+        self.gamma = nn.Parameter(torch.Tensor([0.1]))  # 时间差分系数
         self.Phi = nn.Parameter(init.xavier_normal_(torch.Tensor(2048 // ratio, 2048)))
         self.x_pre = 0
         
@@ -84,7 +83,7 @@ class BasicBlock(torch.nn.Module):
 
         self.lambda_step = nn.Parameter(torch.Tensor([0.5]))  # 梯度迭代步长
         self.soft_thr = nn.Parameter(torch.Tensor([0.01]))  # 阈值函数步长
-        self.eta_step = nn.parameter(torch.Tensor([0.1]))  # 加速梯度步长
+        self.eta_step = nn.Parameter(torch.Tensor([0.1]))  # 加速梯度步长
         self.conv_D = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 2, 3, 3)))  # 32个，2通道，3*3卷积核
 
         self.conv1_forward = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 32, 3, 3)))

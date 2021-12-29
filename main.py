@@ -1,36 +1,35 @@
 """主函数"""
 from libs import config
-from libs.utils import v_loop_wrapper, criteria_loop_wrapper
+from libs.utils import criteria_loop_wrapper
 from libs.RM_net import RMNetConfiguration
 from libs.CSI_net import CSINetConfiguration
-from libs.cs import CSConfiguration, SAMPCS, OMPCS, SPCS, DCTCS, FFTCS
-from libs.visual import HS_CSPlot, HS_NetPlot, HS_TimeForm
-from libs.CSI_Frame import HS_RMNet_CSI, HS_CSINet_CSI, HS_CS_CSI, HS_RMNetStu_CSI, COMM_CSINetStu_CSI, CSPNet_CSI
+from libs.cs import CSConfiguration, OMPCS
+from libs.visual import CSPlot, NetPlot, TimeForm
+from libs.CSI_Frame import COMM_RMNet_CSI, COMM_RMNetStu_CSI
+from libs.CSI_Frame import CSPNet_CSI, COMM_CSINet_CSI, COMM_CSINetStu_CSI, COMM_CS_CSI, ISTANetPlus_CSI
 
 
 class Xun_Lian_He_Ce_Shi(object):
 
 
     def net_csi(self):
-        rmnet = HS_RMNet_CSI()
-        csinet = HS_CSINet_CSI()
+        comm_rmnet = COMM_RMNet_CSI()
         cspnet = CSPNet_CSI()
-        csinet_stu = COMM_CSINetStu_CSI()
-        rm_stu = HS_RMNetStu_CSI()
-        
-        rm_stu.net_train()
+        comm_rmnet_stu = COMM_RMNetStu_CSI()
+        comm_csinet = COMM_CSINet_CSI()
 
-        # rmnet.net_joint_train(epoch=100)
-        # rmnet.net_joint_test()
-        #
-        # csinet.net_joint_train(epoch=70)
-        # csinet.net_joint_test()
-        #
-        # rm_stu.net_joint_train(epoch=50)
-        # rm_stu.net_joint_test()
+        # cspnet.net_train(ratio=8, epoch=80)
+        # cspnet.net_test(ratio=8)
+
+
+        comm_rmnet.net_train(ratio=16, epoch=100)
+        comm_rmnet.net_test(ratio=16, )
+
+        # comm_csinet.net_train(ratio=16, epoch=100)
+        # comm_csinet.net_test(ratio=16)
 
     def cs_csi(self):
-        cs = HS_CS_CSI()
+        cs = COMM_CS_CSI()
         cs.cs_register(OMPCS, CSConfiguration.sparse_dct, CSConfiguration.omp)
         cs.CS_joint_test()
 
@@ -38,23 +37,21 @@ class Xun_Lian_He_Ce_Shi(object):
 class Tu_He_Biao(object):
 
     @criteria_loop_wrapper
-    @v_loop_wrapper
-    def all_plot(self, v, criteria, img_format="svg", ratio_list=config.ratio_list):
-        self.one_plot(v, criteria, img_format, ratio_list)
+    def all_plot(self, criteria, img_format="svg", ratio_list=config.ratio_list):
+        self.one_plot(criteria, img_format, ratio_list)
 
-    def one_plot(self, v, criteria, img_format="svg", ratio_list=config.ratio_list):
+    def one_plot(self, criteria, img_format="svg", ratio_list=config.ratio_list):
         """绘制图像"""
         networks = [
             RMNetConfiguration.network_name,
             CSINetConfiguration.network_name
         ]
         methods = ["{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.omp)]
-        HS_NetPlot().draw(v, networks, criteria, img_format, ratio_list)
-        HS_CSPlot().draw(v, methods, criteria, img_format, ratio_list)
+        NetPlot().draw("comm", networks, criteria, img_format, ratio_list)
+        CSPlot().draw("comm", methods, criteria, img_format, ratio_list)
 
-    @v_loop_wrapper
-    def all_form(self, v, ratio_list=config.ratio_list):
-        self.one_form(v, ratio_list)
+    def all_form(self, ratio_list=config.ratio_list):
+        self.one_form(ratio_list)
 
     def one_form(self, v, ratio_list=config.ratio_list):
         """输出系统耗时json文件，cs、old_csi、net之间的对比"""
@@ -63,8 +60,8 @@ class Tu_He_Biao(object):
             CSINetConfiguration.network_name
         ]
         methods = ["{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.omp)]
-        tf = HS_TimeForm()
-        tf.csi_time_form(v, methods, networks, ratio_list)
+        tf = TimeForm()
+        tf.csi_time_form("comm", methods, networks, ratio_list)
 
 
 if __name__ == '__main__':

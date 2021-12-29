@@ -7,7 +7,7 @@ from utils import gs_noise
 
 class FISTANetConfiguration(object):
     """ISTANetplus配置"""
-    layer_num = 10
+    layer_num = 9
     data_length = 2048
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
@@ -64,7 +64,7 @@ class BasicBlock(torch.nn.Module):
 
         self.lambda_step = nn.Parameter(torch.Tensor([0.5]))  # 梯度迭代步长
         self.soft_thr = nn.Parameter(torch.Tensor([0.01]))  # 阈值函数步长
-        self.eta_step = nn.parameter(torch.Tensor([0.1]))  # 加速梯度步长
+        self.eta_step = nn.Parameter(torch.Tensor([0.1]))  # 加速梯度步长
         self.conv_D = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 2, 3, 3)))  # 32个，2通道，3*3卷积核
 
         self.conv1_forward = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 32, 3, 3)))
