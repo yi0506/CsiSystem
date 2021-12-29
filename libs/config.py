@@ -17,7 +17,7 @@ criteria_list = ["NMSE", "相似度", "time", "Capacity"]  # 评价指标
 
 
 ################ network #################
-train_batch_size = 250
+train_batch_size = 200
 test_batch_size = 20
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 clip = 0.01  # 梯度裁剪阈值

@@ -1,13 +1,44 @@
 import numpy as np
 import torch.nn.functional as F
-from torch.optim import Adam
 import torch
-import torch.nn as nn
 from torch.nn.functional import cosine_similarity
-from tqdm import tqdm
 
 import config
-from utils import rec_mkdir, obj_wrapper, nmse
+from utils import obj_wrapper, nmse
+
+
+@obj_wrapper
+def td_fista_test(model, Qinit, data_loader, snr, info: str = ""):
+    """ISTANet 评估模型"""
+    model.to(config.device).eval()
+    # 测试模型在某个信噪比下的效果，作为模型的评价效果
+    nmse_list = list()
+    similarity_list = list()
+    capacity_list = list()
+    loss_list = list()
+    for _, target in enumerate(data_loader):
+        with torch.no_grad():
+            target = target.to(config.device)
+            [output, _, _] = model(target, Qinit, snr)
+            target = target - 0.5
+            output = output - 0.5
+            cur_similarity = cosine_similarity(output, target, dim=-1).mean().cpu().item()
+            cur_loss = F.mse_loss(output, target).item()
+            cur_nmse = nmse(output, target, "torch")
+            # cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * 10 / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            capacity_list.append(cur_capacity / target.size()[0])
+            nmse_list.append(cur_nmse)
+            loss_list.append(cur_loss)
+            similarity_list.append(cur_similarity)
+
+    # 计算平均相似度与损失
+    avg_nmse = np.mean(nmse_list)
+    avg_similarity = np.mean(similarity_list)
+    avg_capacity = np.mean(capacity_list)
+    avg_loss = np.mean(loss_list)
+    print(info + "\tSNR:{}dB\tloss:{:.5e}\tnmse:{:.3f}\tsimilarity:{}\tcapacity{}".format(snr, avg_loss, avg_nmse, avg_similarity, avg_capacity))
+    return {"相似度": avg_similarity, "NMSE": avg_nmse}
 
 
 @obj_wrapper
@@ -176,149 +207,3 @@ def csp_test(model, data_loader, snr, info: str = ""):
     avg_loss = np.mean(loss_list)
     print(info + "\tSNR:{}dB\tloss:{:.5e}\tnmse:{:.3f}\tsimilarity:{}\tcapacity{}".format(snr, avg_loss, avg_nmse, avg_similarity, avg_capacity))
     return {"相似度": avg_similarity, "NMSE": nmse_loss}
-
-
-@obj_wrapper
-def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info):
-    """
-    进行模型训练
-
-    model: 模型
-    epoch: 模型迭代次数
-    Qinit: 初始化参数
-    Phi: 观测矩阵
-    layer_num: 迭代次数
-    save_path: 模型保存路径
-    data_loader: 数据集迭代器
-    model_snr: 对模型训练时，加入某种信噪比的噪声，train中的snr对应test中的model_snr
-    info: 额外的结果描述信息
-    """
-    model.to(config.device).train()
-    optimizer = Adam(model.parameters())
-    init_loss = 1
-    for i in range(epoch):
-        bar = tqdm(data_loader)
-        for idx, batch_x in enumerate(bar):
-            batch_x = batch_x.to(config.device)
-            Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
-            [x_output, loss_layers_sym] = model(Phix, Phi, Qinit)
-            # 计算损失
-            loss_discrepancy = torch.mean(torch.pow(x_output - batch_x, 2))
-            loss_constraint = 0
-            for k in range(layer_num):
-                loss_constraint += torch.mean(torch.pow(loss_layers_sym[k], 2))
-
-            gamma = torch.Tensor([0.01]).to(config.device)
-            loss_all = loss_discrepancy + torch.mul(gamma, loss_constraint)
-            optimizer.zero_grad()
-            loss_all.backward()
-            optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\t".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item()))
-            if loss_all.item() < init_loss:
-                init_loss = loss_all.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-            if loss_all.item() < 1e-7:
-                return
-
-
-@obj_wrapper
-def csp_train(model, epoch, save_path, data_loader, info):
-    """
-    进行模型训练
-
-    model: 模型
-    epoch: 模型迭代次数
-    save_path: 模型保存路径
-    data_loader: 数据集迭代器
-    model_snr: 对模型训练时，加入某种信噪比的噪声，train中的snr对应test中的model_snr
-    info: 额外的结果描述信息
-    """
-    model.to(config.device).train()
-    optimizer = Adam(model.parameters())
-    init_loss = 1
-    for i in range(epoch):
-        bar = tqdm(data_loader)
-        for idx, (target, y) in enumerate(bar):
-            optimizer.zero_grad()
-            target = target.to(config.device)
-            y = y.to(config.device)
-            output = model(y, None)
-            loss = F.mse_loss(output, target)
-            loss.backward()
-            optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-            if loss.item() < init_loss:
-                init_loss = loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-            if loss.item() < 1e-7:
-                return
-
-
-@obj_wrapper
-def train(model, epoch, save_path, data_loader, info):
-    """
-    进行模型训练
-
-    model: 模型
-    epoch: 模型迭代次数
-    save_path: 模型保存路径
-    data_loader: 数据集迭代器
-    info: 额外的结果描述信息
-    """
-    model.to(config.device).train()
-    optimizer = Adam(model.parameters())
-    init_loss = 1
-    for i in range(epoch):
-        bar = tqdm(data_loader)
-        for idx, data in enumerate(bar):
-            optimizer.zero_grad()  # 梯度置为零
-            data = data.to(config.device)  # 转到GPU训练
-            output = model(data, None)
-            loss = F.mse_loss(output, data)  # 计算损失
-            loss.backward()  # 反向传播
-            nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
-            optimizer.step()  # 梯度更新
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-            if loss.item() < init_loss:
-                init_loss = loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-            if loss.item() < 1e-7:
-                return
-
-
-@obj_wrapper
-def train_stu(teacher, stu, epoch, save_path, data_loader, info):
-    """
-    进行学生模型训练
-
-    teacher: 教师模型
-    stu: 教师模型
-    epoch: 模型迭代次数
-    save_path: 模型保存路径
-    data_loader: 数据集迭代器
-    info: 额外的结果描述信息
-    """
-    teacher.to(config.device).eval()
-    stu.to(config.device).train()
-    optimizer = Adam(stu.parameters())
-    init_loss = 1
-    for i in range(epoch):
-        bar = tqdm(data_loader)
-        for idx, data in enumerate(bar):
-            optimizer.zero_grad()
-            data = data.to(config.device)
-            teacher_ouput = teacher(data, None)
-            stu_output = stu(data, None)
-            loss = F.mse_loss(stu_output, teacher_ouput)
-            loss.backward()
-            optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-            if loss.item() < init_loss:
-                init_loss = loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(stu.state_dict(), save_path)
-            if loss.item() < 1e-7:
-                return

@@ -44,7 +44,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.ratio = ratio  # 压缩率
         self.csi_conv1_combo = nn.Sequential(
-            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=7, padding=3, groups=2),
             nn.BatchNorm2d(2),
             nn.LeakyReLU(0.3)
         )
@@ -74,12 +74,12 @@ class Decoder(nn.Module):
         self.refine_net_1 = RefineNet(2, 2)
         self.refine_net_2 = RefineNet(2, 2)
         self.conv2d_combo = nn.Sequential(
-            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=7, padding=3, groups=2),
             nn.BatchNorm2d(2),
             nn.Sigmoid()
         )
 
-    def forward(self, encoder_output):
+    def forward(self, x):
         """
         由于训练数据形状为[batch_size, 2048]，
         因此最后需要reshape操作：[batch_size, 2, 32, 32] -----> [batch_size,  2048]，变为原来的形状
@@ -92,7 +92,6 @@ class Decoder(nn.Module):
         """
 
         # 全连接
-        x = net_standardization(encoder_output)
         x = self.fc_restore(x)  # [batch_size, 2048]
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # refine_net
@@ -108,13 +107,13 @@ class RefineNet(nn.Module):
 
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=3, padding=1, groups=2)
+        self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=7, padding=3, groups=2)
         self.bn2d_1 = nn.BatchNorm2d(8)
         self.leak_relu_1 = nn.LeakyReLU(0.3)
-        self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, padding=1, groups=8)
+        self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=7, padding=3, groups=2)
         self.bn2d_2 = nn.BatchNorm2d(16)
         self.leak_relu_2 = nn.LeakyReLU(0.3)
-        self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=3, padding=1, groups=2)
+        self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=7, padding=3, groups=2)
         self.bn2d_3 = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):

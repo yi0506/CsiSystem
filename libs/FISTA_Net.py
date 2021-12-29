@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from utils import gs_noise
 
-class TDFISTANetConfiguration(object):
+class FISTANetConfiguration(object):
     """ISTANetplus配置"""
     layer_num = 10
     data_length = 2048
@@ -15,12 +15,12 @@ class TDFISTANetConfiguration(object):
     kerner_size = 3
     stride = 1
     padding = 1
-    network_name = "TD-FISTANet"  # 网络名称
+    network_name = "FISTANet"  # 网络名称
 
 
-class TDFISTANet(torch.nn.Module):
-    def __init__(self, LayerNo, ratio):
-        super(TDFISTANet, self).__init__()
+class FISTANet(torch.nn.Module):
+    def __init__(self, LayerNo):
+        super(FISTANet, self).__init__()
         onelayer = []
         self.LayerNo = LayerNo
 
@@ -28,25 +28,19 @@ class TDFISTANet(torch.nn.Module):
             onelayer.append(BasicBlock())
 
         self.fcs = nn.ModuleList(onelayer)
-        self.td = TDBlock(ratio)  # 时间差分压缩模块
-        
-    def forward(self, x, Qinit, snr=None):
+
+    def forward(self, Phix, Phi, Qinit, snr=None):
         """
-        x 是信号向量，[batch, 2048/ratio] --> [batch, m]
-        
+        Phix 是 Phi * x = y 观测向量，[batch, 2048/ratio] --> [batch, m]
+        Phi 是观测矩阵 [2048/ratio, 2048]
         Qinit ||QY-X||的最小二乘解，Q是线性映射矩阵，[2048, m]
         """
-        # 压缩 (2048, m)
-        Phix = self.td(x)
-        
-        # 是否加入噪声
+        # 加入噪声
         Phix = gs_noise(Phix, snr)
-        
-        # 信号恢复
         # (2048, m) * (m, 2048) = (2048, 2048)
-        PhiTPhi = torch.mm(torch.transpose(self.Phi, 0, 1), self.Phi)
+        PhiTPhi = torch.mm(torch.transpose(Phi, 0, 1), Phi)
         # (batch, m) * (m, 2048) = (batch, 2048)
-        PhiTb = torch.mm(Phix, self.Phi)
+        PhiTb = torch.mm(Phix, Phi)
         # x_0 = y * Qinit.T   (batch, m) * (m, 2048) = (batch, 2048)
         x = torch.mm(Phix, torch.transpose(Qinit, 0, 1))
         layers_sym = []   # for computing symmetric loss
@@ -63,21 +57,7 @@ class TDFISTANet(torch.nn.Module):
         return [x_final, h_iter, layers_sym]
 
 
-class TDBlock(torch.nn.Module):
-    """时间差分模块"""
-    def __init__(self, ratio) -> None:
-        super().__init__()
-        self.gamma = nn.parameter(torch.Tensor([0.1]))  # 时间差分系数
-        self.Phi = nn.Parameter(init.xavier_normal_(torch.Tensor(2048 // ratio, 2048)))
-        self.x_pre = 0
-        
-    def forward(self, x):
-        x = x - self.gamma * self.x_pre  # 马尔科夫时间差分
-        Phix = torch.mm(self.Phi, x)  # 压缩
-        self.x_pre = x  # 保存上一个时刻的数据
-        return Phix
-
-
+# Define ISTA-Net-plus Block
 class BasicBlock(torch.nn.Module):
     def __init__(self):
         super(BasicBlock, self).__init__()

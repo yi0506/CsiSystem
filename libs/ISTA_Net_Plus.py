@@ -19,6 +19,7 @@ class ISTANetplusConfiguration(object):
 
 
 class ISTANetplus(torch.nn.Module):
+    
     def __init__(self, LayerNo):
         super(ISTANetplus, self).__init__()
         onelayer = []
@@ -73,28 +74,28 @@ class BasicBlock(torch.nn.Module):
         self.conv_G = nn.Parameter(init.xavier_normal_(torch.Tensor(2, 32, 3, 3)))
 
     def forward(self, x, PhiTPhi, PhiTb):
-        # r(k) (batch, 2, 32, 32)
+        # r_k (batch, 2, 32, 32)
         x = x - self.lambda_step * torch.mm(x, PhiTPhi)
         x = x + self.lambda_step * PhiTb
         x_input = x.view(-1, 2, 32, 32) 
 
-        # D(k) (batch, 32, 32, 32) 
+        # D(·) (batch, 32, 32, 32) 
         x_D = F.conv2d(x_input, self.conv_D, padding=1)
         
-        # F(x) (batch, 32, 32, 32) 
+        # F(·) (batch, 32, 32, 32) 
         x = F.conv2d(x_D, self.conv1_forward, padding=1)
         x = F.relu(x)
         x_forward = F.conv2d(x, self.conv2_forward, padding=1)  
         
-        # soft(x) (batch, 32, 32, 32)
+        # soft(·) (batch, 32, 32, 32)
         x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
 
-        # F~(x)  (batch, 32, 32, 32)
+        # x_k = F~(·)  (batch, 32, 32, 32)
         x = F.conv2d(x, self.conv1_backward, padding=1)
         x = F.relu(x)
         x_backward = F.conv2d(x, self.conv2_backward, padding=1)
 
-        # G(k)  (batch, 2, 32, 32)
+        # G(·)  (batch, 2, 32, 32)
         x_G = F.conv2d(x_backward, self.conv_G, padding=1)
 
         # 残差

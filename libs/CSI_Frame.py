@@ -10,11 +10,14 @@ from CSP_net import CSPNet, CSPNetConfiguration
 from CSI_net_stu import CSINetStuConfiguration, CSINetStu
 from ISTA_Net_Plus import ISTANetplus, ISTANetplusConfiguration
 from ISTA_Net import ISTANet, ISTANetConfiguration
+from FISTA_Net import FISTANet, FISTANetConfiguration
+from TD_FISTA_Net import TDFISTANet, TDFISTANetConfiguration
 from utils import rec_mkdir, SingletonType
-from train_test import train, train_stu, csp_test, csp_train, test, comm_csi_test, ista_train, ista_test
+from libs.test import csp_test, test, comm_csi_test, ista_test, td_fista_test
+from libs.train import fista_train, td_fista_train, train, train_stu, csp_train, ista_train
 from csi_dataset import HS_RMNetDataset, HS_CSINetDataset, HS_RMStuNetDataset, CSPNetDataset, HS_CSINetStuDataset, HS_CSDataset
 from csi_dataset import COMM_CSDataset,  COMM_CSINetDataset, COMM_CSINetStuDataset, COMM_RMNetDataset, COMM_RMNetStuDataset
-from csi_dataset import COMM_ISTANet_Dataset, COMM_ISTANet_Plus_Dataset
+from csi_dataset import COMM_ISTANet_Dataset, COMM_ISTANet_Plus_Dataset, COMM_FISTANet_Dataset, COMM_TD_FISTANet_Dataset
 from RMNet_stu import RMNetStu, RMNetStuConfiguration
 
 
@@ -61,15 +64,15 @@ class COMM_Net_CSI(metaclass=SingletonType):
         self.net_test(ratio, SNRs, save_ret, save_path)
 
 
-class ISTANetPlus_CSI(COMM_Net_CSI):
-    """ISTANetPlus CSI执行"""
-    CSI_MODEL = ISTANetplus  # 执行CSI的模型
-    CSI_DATASET = COMM_ISTANet_Plus_Dataset  # 执行CSI的模型的数据集
-    NETWORK_NAME = ISTANetplusConfiguration.network_name  # 网络模型名称
+class ISTANet_CSI(COMM_Net_CSI):
+    """ISTANet CSI执行"""
+    CSI_MODEL = ISTANet  # 执行CSI的模型
+    CSI_DATASET = COMM_ISTANet_Dataset  # 执行CSI的模型的数据集
+    NETWORK_NAME = ISTANetConfiguration.network_name  # 网络模型名称
     TRAIN_FUNC = ista_train
     TEST_FUNC = ista_test
 
-    def net_train(self, ratio, layer_num=ISTANetplusConfiguration.layer_num, epoch=config.epoch, save_path: str = "") -> None:
+    def net_train(self, ratio, layer_num=ISTANetConfiguration.layer_num, epoch=config.epoch, save_path: str = "") -> None:
         """在不同压缩率下，进行训练某个信噪比的模型"""
         model = self.CSI_MODEL(layer_num)
         save_path = "./model/{}/common/ratio_{}/{}_{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME, layer_num) if not save_path else save_path
@@ -78,7 +81,7 @@ class ISTANetPlus_CSI(COMM_Net_CSI):
         dataloader = dataset.get_data_loader()
         self.TRAIN_FUNC(model, epoch, dataset.Qinit, dataset.Phi, layer_num, save_path, dataloader, info)
 
-    def net_test(self, ratio, layer_num=ISTANetplusConfiguration.layer_num, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
+    def net_test(self, ratio, layer_num=ISTANetConfiguration.layer_num, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在某个压缩率，测试不同信噪比下模型的效果"""
         model = self.CSI_MODEL(layer_num)
         model_path = "./model/{}/common/ratio_{}/{}_{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME, layer_num)
@@ -95,13 +98,58 @@ class ISTANetPlus_CSI(COMM_Net_CSI):
             rec_mkdir(save_path)
             pickle.dump(result_dict, open(save_path, "wb"))
 
-class ISTANet_CSI(COMM_Net_CSI):
-    """ISTANet CSI执行"""
-    CSI_MODEL = ISTANet  # 执行CSI的模型
-    CSI_DATASET = COMM_ISTANet_Dataset  # 执行CSI的模型的数据集
-    NETWORK_NAME = ISTANetConfiguration.network_name  # 网络模型名称
+
+class ISTANetPlus_CSI(ISTANet_CSI):
+    """ISTANetPlus CSI执行"""
+    CSI_MODEL = ISTANetplus  # 执行CSI的模型
+    CSI_DATASET = COMM_ISTANet_Plus_Dataset  # 执行CSI的模型的数据集
+    NETWORK_NAME = ISTANetplusConfiguration.network_name  # 网络模型名称
     TRAIN_FUNC = ista_train
     TEST_FUNC = ista_test
+
+
+class FISTANet_CSI(ISTANet_CSI):
+    """ISTANetPlus CSI执行"""
+    CSI_MODEL = FISTANet  # 执行CSI的模型
+    CSI_DATASET = COMM_FISTANet_Dataset  # 执行CSI的模型的数据集
+    NETWORK_NAME = FISTANetConfiguration.network_name  # 网络模型名称
+    TRAIN_FUNC = fista_train
+    TEST_FUNC = ista_test
+
+
+class TD_FISTANet_CSI(COMM_Net_CSI):
+    """ISTANetPlus CSI执行"""
+    CSI_MODEL = TDFISTANet  # 执行CSI的模型
+    CSI_DATASET = COMM_TD_FISTANet_Dataset  # 执行CSI的模型的数据集
+    NETWORK_NAME = TDFISTANetConfiguration.network_name  # 网络模型名称
+    TRAIN_FUNC = td_fista_train
+    TEST_FUNC = td_fista_test
+    
+    def net_train(self, ratio, layer_num=TDFISTANetConfiguration.layer_num, epoch=config.epoch, save_path: str = "") -> None:
+        """在不同压缩率下，进行训练某个信噪比的模型"""
+        model = self.CSI_MODEL(layer_num, ratio)
+        save_path = "./model/{}/common/ratio_{}/{}_{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME, layer_num) if not save_path else save_path
+        info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
+        dataset = self.CSI_DATASET(True, ratio)
+        dataloader = dataset.get_data_loader()
+        self.TRAIN_FUNC(model, epoch, dataset.Qinit, layer_num, save_path, dataloader, info)
+
+    def net_test(self, ratio, layer_num=TDFISTANetConfiguration.layer_num, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
+        """在某个压缩率，测试不同信噪比下模型的效果"""
+        model = self.CSI_MODEL(layer_num)
+        model_path = "./model/{}/common/ratio_{}/{}_{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME, layer_num)
+        model.load_state_dict(torch.load(model_path))
+        info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
+        dataset = self.CSI_DATASET(True, ratio)
+        dataloader = dataset.get_data_loader()
+        result_dict = dict()
+        for snr in SNRs:
+            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, dataset.Qinit, dataloader, snr, info)
+        del model
+        if save_ret:
+            save_path = "./test_result/{}/common/ratio_{}/{}.pkl".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
+            rec_mkdir(save_path)
+            pickle.dump(result_dict, open(save_path, "wb"))
 
 
 class CSPNet_CSI(COMM_Net_CSI):

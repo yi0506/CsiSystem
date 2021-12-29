@@ -68,20 +68,20 @@ class BasicBlock(torch.nn.Module):
         self.conv2_backward = nn.Parameter(init.xavier_normal_(torch.Tensor(2, 32, 3, 3)))
 
     def forward(self, x, PhiTPhi, PhiTb):
-        # 求r
+        # r_k
         x = x - self.lambda_step * torch.mm(x, PhiTPhi)
         x = x + self.lambda_step * PhiTb
         x_input = x.view(-1, 2, 32, 32)
 
-        # F(x)
+        # F(·)
         x = F.conv2d(x_input, self.conv1_forward, padding=1)
         x = F.relu(x)
         x_forward = F.conv2d(x, self.conv2_forward, padding=1)
 
-        # Soft(x)
+        # Soft(·)
         x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
 
-        # F~(x)
+        # x_k = F~(·)
         x = F.conv2d(x, self.conv1_backward, padding=1)
         x = F.relu(x)
         x_backward = F.conv2d(x, self.conv2_backward, padding=1)

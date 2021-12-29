@@ -77,21 +77,21 @@ class COMM_ISTANet_Dataset(COMM_Dataset):
         """
         FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
-        self.data = np.load(FILE_PATH)[:10000]
+        self.data = np.load(FILE_PATH)
         self.ratio = ratio
         Phi_m = ISTANetConfiguration.data_length // self.ratio  # 得到观测矩阵的行数
         Phi_path = "{}/data/CS/Phi_{}.npy".format(config.BASE_DIR, Phi_m)
         self.Phi = torch.from_numpy(load_Phi(Phi_path)).float().to(config.device)
-        self.Qinit = self.load_Qinit("{}/data/CS/Qinit.npy".format(config.BASE_DIR)).to(config.device)
+        self.Qinit = self.load_Qinit("{}/data/CS/Qinit_{}.npy".format(config.BASE_DIR, Phi_m)).to(config.device)
         self.Configuration.collate_fn = self.collate_fn
-                        
+
     def load_Qinit(self, Qinit_path):
         if os.path.exists(Qinit_path):
             Qinit = np.load(Qinit_path)
         else:
             # 输入x为全部数据的行向量的集合，一共10000行
             XT = self.data.transpose()  # 输入转置x --> (2048, 10000)
-            YT = np.dot(self.Phi, XT)  # 观测y --> (m, 2048) * (2048, 10000) = (m, 10000)
+            YT = np.dot(self.Phi.cpu().numpy(), XT)  # 观测y --> (m, 2048) * (2048, 10000) = (m, 10000)
             YT_YTT = np.dot(YT, YT.transpose())  # y*y_T --> (m, m)
             XT_YTT = np.dot(XT, YT.transpose())  # x*y_T --> (2048, 10000) * (10000, m) = (2048, m)
             Qinit = np.dot(XT_YTT, np.linalg.inv(YT_YTT))  # Qinit --> (2048, m) * (m, m) = (2048, m)
@@ -104,7 +104,15 @@ class COMM_ISTANet_Dataset(COMM_Dataset):
 
 
 class COMM_ISTANet_Plus_Dataset(COMM_ISTANet_Dataset):
-    """ISTA Net+ 数据集数据集相同"""
+    """ISTANet+数据集，与ISTA Net+ 数据集数据集相同"""
+
+
+class COMM_FISTANet_Dataset(COMM_ISTANet_Dataset):
+    """FISTANet数据集，与ISTA Net+ 数据集数据集相同"""
+
+
+class COMM_TD_FISTANet_Dataset(COMM_ISTANet_Dataset):
+    """TD-FISTANet数据集"""
 
 
 class COMM_CSINetDataset(COMM_Dataset):
@@ -121,8 +129,8 @@ class COMM_CSINetDataset(COMM_Dataset):
     def collate_fn(self, batch):
         # 返回[batch, 2048]
         return torch.FloatTensor(batch)
-    
-    
+
+
 class COMM_RMNetDataset(COMM_Dataset):
     """RMNet 数据集"""
 
