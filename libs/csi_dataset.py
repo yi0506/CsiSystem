@@ -119,7 +119,7 @@ class COMM_CSINetDataset(COMM_Dataset):
         self.Configuration.collate_fn = self.collate_fn
 
     def collate_fn(self, batch):
-        # 返回[batch, 2048],CSINet有sigmoid，需要加0.5
+        # 返回[batch, 2048]
         return torch.FloatTensor(batch)
     
     

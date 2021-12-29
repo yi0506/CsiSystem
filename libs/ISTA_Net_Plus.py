@@ -4,13 +4,14 @@ from torch.nn import init
 import torch.nn.functional as F
 
 
+from utils import gs_noise
+
 class ISTANetplusConfiguration(object):
     """ISTANetplus配置"""
     layer_num = 10
     data_length = 2048
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
-    data_length = 2048  # 信号矩阵变成一维向量后的长度 2048 == 2 * 32 *32
     kerner_size = 3
     stride = 1
     padding = 1
@@ -28,12 +29,14 @@ class ISTANetplus(torch.nn.Module):
 
         self.fcs = nn.ModuleList(onelayer)
 
-    def forward(self, Phix, Phi, Qinit):
+    def forward(self, Phix, Phi, Qinit, snr=None):
         """
         Phix 是 Phi * x = y 观测向量，[batch, 2048/ratio] --> [batch, m]
         Phi 是观测矩阵 [2048/ratio, 2048]
         Qinit ||QY-X||的最小二乘解，Q是线性映射矩阵，[2048, m]
         """
+        # 加入噪声
+        Phix = gs_noise(Phix, snr)
         # (2048, m) * (m, 2048) = (2048, 2048)
         PhiTPhi = torch.mm(torch.transpose(Phi, 0, 1), Phi)
         # (batch, m) * (m, 2048) = (batch, 2048)

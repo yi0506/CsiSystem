@@ -88,7 +88,7 @@ class ISTANetPlus_CSI(COMM_Net_CSI):
         dataloader = dataset.get_data_loader()
         result_dict = dict()
         for snr in SNRs:
-            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, dataset.Phi, layer_num, dataloader, snr, info)
+            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, dataset.Phi, dataset.Qinit, dataloader, snr, info)
         del model
         if save_ret:
             save_path = "./test_result/{}/common/ratio_{}/{}.pkl".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
