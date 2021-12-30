@@ -67,7 +67,7 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
                 init_loss = val_loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
-                print("保存模型....val_loss:{:.4e}".format(init_loss))
+                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
             if val_loss.item() < 1e-7:
                 return
 
@@ -124,7 +124,7 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
                 init_loss = val_loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
-                print("保存模型....val_loss:{:.4e}".format(init_loss))
+                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
             if val_loss.item() < 1e-7:
                 return
 
@@ -186,7 +186,7 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
                 init_loss = val_loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
-                print("保存模型....val_loss:{:.4e}".format(init_loss))
+                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
             if val_loss.item() < 1e-7:
                 return
 
@@ -221,7 +221,7 @@ def csp_train(model, epoch, save_path, data_loader, info):
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
-                print("保存模型....val_loss:{:.4e}".format(init_loss))
+                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
             if loss.item() < 1e-7:
                 return
 
@@ -255,7 +255,7 @@ def train(model, epoch, save_path, data_loader, info):
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
-                print("保存模型....val_loss:{:.4e}".format(init_loss))
+                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
             if loss.item() < 1e-7:
                 return
 
@@ -291,6 +291,6 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
                 init_loss = loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(stu.state_dict(), save_path)
-                print("保存模型....val_loss:{:.4e}".format(init_loss))
+                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
             if loss.item() < 1e-7:
                 return

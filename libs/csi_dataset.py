@@ -22,7 +22,7 @@ class CsiDataset(Dataset):
         shuffle = True  # 是否打乱数据集
         collate_fn = None  # 对一个data_loader中batch size个数据的进行操作的函数指针
         batch_size = 1  # 一个读取的数据量
-        num_workers = 0 if platform.system() =="Windows" else 4  # 读取数据的线程数
+        num_workers = 0 if platform.system() == "Windows" else 4  # 读取数据的线程数
 
     def get_data_loader(self, **settings):
         """获取data_loader"""
@@ -102,7 +102,7 @@ class COMM_ISTANet_Dataset(COMM_Dataset):
         """
         FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
-        self.data = np.load(FILE_PATH) if is_train else np.load[:200]
+        self.data = np.load(FILE_PATH) if is_train else np.load(FILE_PATH)[:200]
         self.ratio = ratio
         Phi_m = ISTANetConfiguration.data_length // self.ratio  # 得到观测矩阵的行数
         Phi_path = "{}/data/CS/Phi_{}.npy".format(config.BASE_DIR, Phi_m)
@@ -148,7 +148,7 @@ class COMM_CSINetDataset(COMM_Dataset):
         """
         FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
-        self.data = np.load(FILE_PATH) if is_train else np.load[:200]
+        self.data = np.load(FILE_PATH) if is_train else np.load(FILE_PATH)[:200]
         self.Configuration.collate_fn = self.collate_fn
 
     def collate_fn(self, batch):
@@ -165,7 +165,7 @@ class COMM_RMNetDataset(COMM_Dataset):
         """
         FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
-        self.data = np.load(FILE_PATH) if is_train else np.load[:200]
+        self.data = np.load(FILE_PATH) if is_train else np.load(FILE_PATH)[:200]
         self.Configuration.collate_fn = self.collate_fn
 
     def collate_fn(self, batch):
@@ -192,7 +192,7 @@ class CSPNetDataset(COMM_Dataset):
         self.ratio = ratio
         self.y = None
         self.Configuration.collate_fn = self.collate_fn
-        self.data = np.load(FILE_PATH) if is_train else np.load[:200]
+        self.data = np.load(FILE_PATH) if is_train else np.load(FILE_PATH)[:200]
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
 
     def collate_fn(self, batch):

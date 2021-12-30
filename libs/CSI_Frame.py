@@ -87,7 +87,7 @@ class ISTANet_CSI(COMM_Net_CSI):
         model_path = "./model/{}/common/ratio_{}/{}_{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME, layer_num)
         model.load_state_dict(torch.load(model_path))
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
-        dataset = self.CSI_DATASET(True, ratio)
+        dataset = self.CSI_DATASET(False, ratio)
         dataloader = dataset.get_data_loader()
         result_dict = dict()
         for snr in SNRs:
@@ -140,7 +140,7 @@ class TD_FISTANet_CSI(COMM_Net_CSI):
         model_path = "./model/{}/common/ratio_{}/{}_{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME, layer_num)
         model.load_state_dict(torch.load(model_path))
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
-        dataset = self.CSI_DATASET(True, ratio)
+        dataset = self.CSI_DATASET(False, ratio)
         dataloader = dataset.get_data_loader()
         result_dict = dict()
         for snr in SNRs:
