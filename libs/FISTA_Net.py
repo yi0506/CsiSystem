@@ -8,7 +8,7 @@ from utils import gs_noise
 
 class FISTANetConfiguration(object):
     """ISTANetplus配置"""
-    layer_num = 9
+    layer_num = 4
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
     data_length = 2048  # 信号矩阵变成一维向量后的长度 2048 == 2 * 32 *32

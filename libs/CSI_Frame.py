@@ -13,7 +13,7 @@ from ISTA_Net import ISTANet, ISTANetConfiguration
 from FISTA_Net import FISTANet, FISTANetConfiguration
 from TD_FISTA_Net import TDFISTANet, TDFISTANetConfiguration
 from utils import rec_mkdir, SingletonType
-from libs.test import csp_test, test, comm_csi_test, ista_test, td_fista_test
+from libs.test import csp_test, test, comm_csi_test, ista_test, td_fista_test, fista_test
 from libs.train import fista_train, td_fista_train, train, train_stu, csp_train, ista_train
 from csi_dataset import HS_RMNetDataset, HS_CSINetDataset, HS_RMStuNetDataset, CSPNetDataset, HS_CSINetStuDataset, HS_CSDataset
 from csi_dataset import COMM_CSDataset,  COMM_CSINetDataset, COMM_CSINetStuDataset, COMM_RMNetDataset, COMM_RMNetStuDataset
@@ -114,7 +114,7 @@ class FISTANet_CSI(ISTANet_CSI):
     CSI_DATASET = COMM_FISTANet_Dataset  # 执行CSI的模型的数据集
     NETWORK_NAME = FISTANetConfiguration.network_name  # 网络模型名称
     TRAIN_FUNC = fista_train
-    TEST_FUNC = ista_test
+    TEST_FUNC = fista_test
 
 
 class TD_FISTANet_CSI(COMM_Net_CSI):
@@ -124,7 +124,7 @@ class TD_FISTANet_CSI(COMM_Net_CSI):
     NETWORK_NAME = TDFISTANetConfiguration.network_name  # 网络模型名称
     TRAIN_FUNC = td_fista_train
     TEST_FUNC = td_fista_test
-    
+
     def net_train(self, ratio, layer_num=TDFISTANetConfiguration.layer_num, epoch=config.epoch, save_path: str = "") -> None:
         """在不同压缩率下，进行训练某个信噪比的模型"""
         model = self.CSI_MODEL(layer_num, ratio)
@@ -136,7 +136,7 @@ class TD_FISTANet_CSI(COMM_Net_CSI):
 
     def net_test(self, ratio, layer_num=TDFISTANetConfiguration.layer_num, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在某个压缩率，测试不同信噪比下模型的效果"""
-        model = self.CSI_MODEL(layer_num)
+        model = self.CSI_MODEL(layer_num, ratio)
         model_path = "./model/{}/common/ratio_{}/{}_{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME, layer_num)
         model.load_state_dict(torch.load(model_path))
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
@@ -199,7 +199,7 @@ class COMM_RMNet_CSI(COMM_Net_CSI):
     CSI_DATASET = COMM_RMNetDataset  # 执行CSI的模型的数据集
     NETWORK_NAME = RMNetConfiguration.network_name  # 网络模型名称
     TEST_FUNC = comm_csi_test  # 网络测试函数指针
-    
+
 
 
 class COMM_NetStu_CSI(COMM_Net_CSI):

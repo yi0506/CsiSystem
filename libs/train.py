@@ -6,6 +6,10 @@ from tqdm import tqdm
 
 import config
 from utils import rec_mkdir, obj_wrapper
+from csi_dataset import COMM_ValDataset
+
+
+comm_val_dataloader = COMM_ValDataset().get_data_loader()
 
 
 @obj_wrapper
@@ -47,13 +51,26 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
             loss_all.backward()
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
-            if loss_all.item() < init_loss:
-                init_loss = loss_all.item()
+        # 模型验证
+        with torch.no_grad():
+            loss_list = list()
+            for idx, batch_x in enumerate(comm_val_dataloader):
+                batch_x = batch_x.to(config.device)
+                Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
+                [output, _, _] = model(Phix, Phi, Qinit)
+                batch_x = batch_x - 0.5
+                output = output - 0.5
+                cur_loss = F.mse_loss(output, batch_x).item()
+                loss_list.append(cur_loss)
+            val_loss = torch.mean(torch.tensor(loss_list))
+            if val_loss.item() < init_loss:
+                init_loss = val_loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
-            if loss_all.item() < 1e-7:
+                print("保存模型....val_loss:{:.4e}".format(init_loss))
+            if val_loss.item() < 1e-7:
                 return
-            
+
 
 @obj_wrapper
 def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info):
@@ -92,13 +109,25 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
             loss_all.backward()
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
-            if loss_all.item() < init_loss:
-                init_loss = loss_all.item()
+        # 模型验证
+        with torch.no_grad():
+            loss_list = list()
+            for idx, batch_x in enumerate(comm_val_dataloader):
+                batch_x = batch_x.to(config.device)
+                [output, _, _] = model(batch_x, Qinit)
+                batch_x = batch_x - 0.5
+                output = output - 0.5
+                cur_loss = F.mse_loss(output, batch_x).item()
+                loss_list.append(cur_loss)
+            val_loss = torch.mean(torch.tensor(loss_list))
+            if val_loss.item() < init_loss:
+                init_loss = val_loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
-            if loss_all.item() < 1e-7:
+                print("保存模型....val_loss:{:.4e}".format(init_loss))
+            if val_loss.item() < 1e-7:
                 return
-            
+
 
 @obj_wrapper
 def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info):
@@ -129,7 +158,6 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
             loss_constraint = torch.tensor(0).float().to(config.device)
             for k in range(layer_num):
                 loss_constraint += torch.mean(torch.pow(loss_layers_sym[k], 2))
-
             gamma = torch.Tensor([0.01]).to(config.device)
             loss_all = loss_discrepancy + torch.mul(gamma, loss_constraint)
             optimizer.zero_grad()
@@ -141,6 +169,25 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
             if loss_all.item() < 1e-7:
+                return
+        # 模型验证
+        with torch.no_grad():
+            loss_list = list()
+            for idx, batch_x in enumerate(comm_val_dataloader):
+                batch_x = batch_x.to(config.device)
+                Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
+                [output, _] = model(Phix, Phi, Qinit)
+                batch_x = batch_x - 0.5
+                output = output - 0.5
+                cur_loss = F.mse_loss(output, batch_x).item()
+                loss_list.append(cur_loss)
+            val_loss = torch.mean(torch.tensor(loss_list))
+            if val_loss.item() < init_loss:
+                init_loss = val_loss.item()
+                rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                torch.save(model.state_dict(), save_path)
+                print("保存模型....val_loss:{:.4e}".format(init_loss))
+            if val_loss.item() < 1e-7:
                 return
 
 

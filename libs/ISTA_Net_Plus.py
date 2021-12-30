@@ -3,12 +3,12 @@ import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
 
-
 from utils import gs_noise
+
 
 class ISTANetplusConfiguration(object):
     """ISTANetplus配置"""
-    layer_num = 9
+    layer_num = 4
     data_length = 2048
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
@@ -19,7 +19,7 @@ class ISTANetplusConfiguration(object):
 
 
 class ISTANetplus(torch.nn.Module):
-    
+
     def __init__(self, LayerNo):
         super(ISTANetplus, self).__init__()
         onelayer = []
@@ -44,7 +44,7 @@ class ISTANetplus(torch.nn.Module):
         PhiTb = torch.mm(Phix, Phi)
         # x_0 = y * Qinit.T   (batch, m) * (m, 2048) = (batch, 2048)
         x = torch.mm(Phix, torch.transpose(Qinit, 0, 1))
-        layers_sym = []   # for computing symmetric loss
+        layers_sym = []  # for computing symmetric loss
 
         # 每一个phase进行迭代计算
         for i in range(self.LayerNo):
@@ -77,16 +77,16 @@ class BasicBlock(torch.nn.Module):
         # r_k (batch, 2, 32, 32)
         x = x - self.lambda_step * torch.mm(x, PhiTPhi)
         x = x + self.lambda_step * PhiTb
-        x_input = x.view(-1, 2, 32, 32) 
+        x_input = x.view(-1, 2, 32, 32)
 
-        # D(·) (batch, 32, 32, 32) 
+        # D(·) (batch, 32, 32, 32)
         x_D = F.conv2d(x_input, self.conv_D, padding=1)
-        
-        # F(·) (batch, 32, 32, 32) 
+
+        # F(·) (batch, 32, 32, 32)
         x = F.conv2d(x_D, self.conv1_forward, padding=1)
         x = F.relu(x)
-        x_forward = F.conv2d(x, self.conv2_forward, padding=1)  
-        
+        x_forward = F.conv2d(x, self.conv2_forward, padding=1)
+
         # soft(·) (batch, 32, 32, 32)
         x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
 
@@ -100,10 +100,10 @@ class BasicBlock(torch.nn.Module):
 
         # 残差
         x_pred = x_input + x_G
-        
+
         # 预测值
         x_pred = x_pred.view(-1, 2048)
-        
+
         # 恒等约束
         x = F.conv2d(x_forward, self.conv1_backward, padding=1)
         x = F.relu(x)
