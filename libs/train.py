@@ -34,10 +34,10 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
             [x_output, h_iter, loss_layers_sym] = model(Phix, Phi, Qinit)
             # 计算损失
             loss_discrepancy = torch.mean(torch.pow(x_output - batch_x, 2))
-            loss_constraint = 0
+            loss_constraint = torch.tensor(0).float().to(config.device)
             for k in range(layer_num):
                 loss_constraint += torch.mean(torch.pow(loss_layers_sym[k], 2))
-            loss_iteration = 0
+            loss_iteration = torch.tensor(0).float().to(config.device)
             for h_k in h_iter:
                 loss_iteration += torch.mean(torch.pow(h_k - batch_x, 2))
             gamma = torch.Tensor([0.01]).to(config.device)
@@ -79,10 +79,10 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
             [x_output, h_iter, loss_layers_sym] = model(batch_x, Qinit)
             # 计算损失
             loss_discrepancy = torch.mean(torch.pow(x_output - batch_x, 2))
-            loss_constraint = 0
+            loss_constraint = torch.tensor(0).float().to(config.device)
             for k in range(layer_num):
                 loss_constraint += torch.mean(torch.pow(loss_layers_sym[k], 2))
-            loss_iteration = 0
+            loss_iteration = torch.tensor(0).float().to(config.device)
             for h_k in h_iter:
                 loss_iteration += torch.mean(torch.pow(h_k - batch_x, 2))
             gamma = torch.Tensor([0.01]).to(config.device)
@@ -126,7 +126,7 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
             [x_output, loss_layers_sym] = model(Phix, Phi, Qinit)
             # 计算损失
             loss_discrepancy = torch.mean(torch.pow(x_output - batch_x, 2))
-            loss_constraint = 0
+            loss_constraint = torch.tensor(0).float().to(config.device)
             for k in range(layer_num):
                 loss_constraint += torch.mean(torch.pow(loss_layers_sym[k], 2))
 

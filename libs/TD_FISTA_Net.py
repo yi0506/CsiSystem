@@ -5,9 +5,10 @@ import torch.nn.functional as F
 
 from utils import gs_noise
 
+
 class TDFISTANetConfiguration(object):
     """ISTANetplus配置"""
-    layer_num = 9
+    layer_num = 4
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
     data_length = 2048  # 信号矩阵变成一维向量后的长度 2048 == 2 * 32 *32
@@ -28,19 +29,19 @@ class TDFISTANet(torch.nn.Module):
 
         self.fcs = nn.ModuleList(onelayer)
         self.td = TDBlock(ratio)  # 时间差分压缩模块
-        
+
     def forward(self, x, Qinit, snr=None):
         """
         x 是信号向量，[batch, 2048/ratio] --> [batch, m]
-        
+
         Qinit ||QY-X||的最小二乘解，Q是线性映射矩阵，[2048, m]
         """
         # 压缩 (2048, m)
         Phix = self.td(x)
-        
+
         # 是否加入噪声
         Phix = gs_noise(Phix, snr)
-        
+
         # 信号恢复
         # (2048, m) * (m, 2048) = (2048, 2048)
         PhiTPhi = torch.mm(torch.transpose(self.td.Phi, 0, 1), self.td.Phi)
@@ -48,14 +49,14 @@ class TDFISTANet(torch.nn.Module):
         PhiTb = torch.mm(Phix, self.td.Phi)
         # x_0 = y * Qinit.T   (batch, m) * (m, 2048) = (batch, 2048)
         x = torch.mm(Phix, torch.transpose(Qinit, 0, 1))
-        layers_sym = []   # for computing symmetric loss
+        layers_sym = []  # for computing symmetric loss
         h_iter = []  # 计算迭代损失
-        h = x  # h_0 初始化为x
+        h = x.view(-1, 2, 32, 32)  # h_0 初始化为x
         # 每一个phase进行迭代计算
         for i in range(self.LayerNo):
             [x, h, layer_sym] = self.fcs[i](x, h, PhiTPhi, PhiTb)
             layers_sym.append(layer_sym)
-            h_iter.append(h)
+            h_iter.append(h.view(-1, 2048))
         # 取最后一次输出作为最终结果
         x_final = x
 
@@ -64,17 +65,18 @@ class TDFISTANet(torch.nn.Module):
 
 class TDBlock(torch.nn.Module):
     """时间差分模块"""
+
     def __init__(self, ratio) -> None:
         super().__init__()
         self.gamma = nn.Parameter(torch.Tensor([0.1]))  # 时间差分系数
         self.Phi = nn.Parameter(init.xavier_normal_(torch.Tensor(2048 // ratio, 2048)))
         self.x_pre = 0
-        
+
     def forward(self, x):
         x = x - self.gamma * self.x_pre  # 马尔科夫时间差分
-        Phix = torch.mm(self.Phi, x)  # 压缩
-        self.x_pre = x  # 保存上一个时刻的数据
-        return Phix
+        Phix = torch.mm(self.Phi, x.T)  # 压缩  (m, 2048) * (2048, batch) = (m, batch)
+        self.x_pre = x.detach()  # 保存上一个时刻的数据
+        return Phix.T
 
 
 class BasicBlock(torch.nn.Module):
@@ -97,20 +99,20 @@ class BasicBlock(torch.nn.Module):
         """
         预测值是h_k，输入是上一次预测值y_(k-1)和h_(k-1)
         """
-        
+
         # g_k (batch, 2, 32, 32)
         y_k = y_k - self.lambda_step * torch.mm(y_k, PhiTPhi)
         g_k = y_k + self.lambda_step * PhiTb
-        x_input = g_k.view(-1, 2, 32, 32) 
+        x_input = g_k.view(-1, 2, 32, 32)
 
         # R(·) (batch, 32, 32, 32) 
         x_R = F.conv2d(x_input, self.conv_D, padding=1)
-        
+
         # S(·) (batch, 32, 32, 32) 
         x = F.conv2d(x_R, self.conv1_forward, padding=1)
         x = F.relu(x)
-        x_forward = F.conv2d(x, self.conv2_forward, padding=1)  
-        
+        x_forward = F.conv2d(x, self.conv2_forward, padding=1)
+
         # soft(·) (batch, 32, 32, 32)
         x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
 
@@ -121,14 +123,14 @@ class BasicBlock(torch.nn.Module):
 
         # D(·)  (batch, 2, 32, 32)
         x_D = F.conv2d(x_backward, self.conv_G, padding=1)
-        
+
         # 预测值 h_k  (batch, 2, 32, 32)
         h_pred = x_input + x_D
-        
+
         # y_k  (batch, 2, 32, 32)
-        y_pred = h_pred + self.eta_step(h_pred - h_k)
+        y_pred = h_pred + self.eta_step * (h_pred - h_k)
         h_pred = h_pred.view(-1, 2048)
-        
+
         # 恒等约束
         x = F.conv2d(x_forward, self.conv1_backward, padding=1)
         x = F.relu(x)
