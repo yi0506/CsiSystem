@@ -90,7 +90,8 @@ class Decoder(nn.Module):
         :param encoder_output: [batch_size,  2048/ratio]
         :return: [batch_size, 2048]
         """
-
+        # 标准化
+        x = net_standardization(x)  # [batch_size, 2048]
         # 全连接
         x = self.fc_restore(x)  # [batch_size, 2048]
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]

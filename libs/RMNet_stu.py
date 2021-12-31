@@ -41,25 +41,24 @@ class Encoder(nn.Module):
 
     def __init__(self, ratio):
         super(Encoder, self).__init__()
-        self.ratio = ratio
-        self.group_conv_combo = nn.Sequential(
-            Conv2DWrapper(2, 8, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2),
-            Conv2DWrapper(8, 2, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2),
+        self.ratio = ratio  # 压缩率
+        self.csi_conv1_combo = nn.Sequential(
+            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1, groups=2),
+            nn.BatchNorm2d(2),
+            nn.LeakyReLU(0.3)
         )
-        self.fc_compress = LinearWrapper(RMNetStuConfiguration.data_length, RMNetStuConfiguration.data_length // self.ratio)
+        self.fc_compress = nn.Linear(2048, 2048 // ratio)
 
-    def forward(self, input_):
+    def forward(self, x):
         """
-        压缩：标准化 ----> 残差（分组卷积） ---> 全连接压缩
-        :param input_: [batch_size, 2048]
+        压缩: 标准化 ----> 残差（分组卷积） ---> 全连接压缩
+        :param x: [batch_size, 2048]
         :return: [batch_size, 2048/ratio]
         """
-        # 标准化
-        x = net_standardization(input_)  # [batch_size, 2048]
-        x = x.view(-1, RMNetStuConfiguration.channel_num, RMNetStuConfiguration.maxtrix_len, RMNetStuConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # 分组卷积
         x = res_unit(self.group_conv_combo, x)  # [batch_size, 8, 32, 32]
-        x = x.view(-1, RMNetStuConfiguration.data_length)  # [batch_size, 2048]
+        x = x.view(-1, 2048)  # [batch_size, 2048]
         # 全连接
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
         return output
@@ -71,11 +70,11 @@ class Decoder(nn.Module):
     def __init__(self, ratio):
         super(Decoder, self).__init__()
         self.ratio = ratio
-        self.restore_fc = LinearWrapper(RMNetStuConfiguration.data_length // ratio,  RMNetStuConfiguration.data_length)
+        self.fc_restore = nn.Linear(2048 // ratio, 2048)
         self.group_conv_combo = nn.Sequential(
-            Conv2DWrapper(2, 8, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2),
-            Conv2DWrapper(8, 8, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 4),
-            Conv2DWrapper(8, 2, RMNetStuConfiguration.kerner_size, RMNetStuConfiguration.stride, RMNetStuConfiguration.padding, 2)
+            Conv2DWrapper(in_channels=2, out_channels=8, kenerl_size=3, stride=1, padding=1, groups=2),
+            Conv2DWrapper(in_channels=8, out_channels=16, kenerl_size=3, stride=1, padding=1, groups=4),
+            Conv2DWrapper(in_channels=16, out_channels=2, kenerl_size=3, stride=1, padding=1, groups=2)
         )
         
     def forward(self, x):
@@ -89,27 +88,11 @@ class Decoder(nn.Module):
         x = net_standardization(x)  # [batch_size, 2048/ratio]
         # 全连接
         x = self.restore_fc(x)  # [batch_size, 2048]
-        x = x.view(-1, RMNetStuConfiguration.channel_num, RMNetStuConfiguration.maxtrix_len, RMNetStuConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # 分组卷积
         x = res_unit(self.group_conv_combo, x)  # [batch_size, 32, 32 ,32]
-        output = x.view(-1, RMNetStuConfiguration.data_length)  # [batch_size, 2*32*32]
+        output = x.view(-1, 2048)  # [batch_size, 2*32*32]
         return output
-
-
-class LinearWrapper(nn.Module):
-    """全连接层压缩"""
-
-    def __init__(self, in_features, out_features):
-        super().__init__()
-        self.linear = nn.Linear(in_features, out_features)
-        self.leaky_relu = nn.LeakyReLU(True)
-        self.bn2d = nn.BatchNorm1d(out_features)
-
-    def forward(self, x):
-        x = self.linear(x)
-        x = self.leaky_relu(x)
-        x = self.bn2d(x)
-        return x
 
 
 class Conv2DWrapper(nn.Module):
@@ -119,7 +102,7 @@ class Conv2DWrapper(nn.Module):
         super().__init__()
         self.conv2d = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, groups=groups, 
                                 kernel_size=kenerl_size, stride=stride, padding=padding)
-        self.leaky_relu = nn.LeakyReLU(True)
+        self.leaky_relu = nn.LeakyReLU(0.3)
         self.bn2d = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):

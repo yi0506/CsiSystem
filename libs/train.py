@@ -31,6 +31,7 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
     optimizer = Adam(model.parameters())
     init_loss = 1
     for i in range(epoch):
+        torch.cuda.empty_cache()  # 清空缓存
         bar = tqdm(data_loader)
         for idx, batch_x in enumerate(bar):
             batch_x = batch_x.to(config.device)
@@ -49,6 +50,7 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
             loss_all = loss_discrepancy + torch.mul(gamma, loss_constraint) + torch.mul(miu, loss_iteration)
             optimizer.zero_grad()
             loss_all.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
         # 模型验证
@@ -90,6 +92,7 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
     optimizer = Adam(model.parameters())
     init_loss = 1
     for i in range(epoch):
+        torch.cuda.empty_cache()  # 清空缓存
         bar = tqdm(data_loader)
         for idx, batch_x in enumerate(bar):
             batch_x = batch_x.to(config.device)
@@ -107,6 +110,7 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
             loss_all = loss_discrepancy + torch.mul(gamma, loss_constraint) + torch.mul(miu, loss_iteration)
             optimizer.zero_grad()
             loss_all.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
         # 模型验证
@@ -162,6 +166,7 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
             loss_all = loss_discrepancy + torch.mul(gamma, loss_constraint)
             optimizer.zero_grad()
             loss_all.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\t".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item()))
             if loss_all.item() < init_loss:
@@ -207,6 +212,7 @@ def csp_train(model, epoch, save_path, data_loader, info):
     optimizer = Adam(model.parameters())
     init_loss = 1
     for i in range(epoch):
+        torch.cuda.empty_cache()  # 清空缓存
         bar = tqdm(data_loader)
         for idx, (target, y) in enumerate(bar):
             optimizer.zero_grad()
@@ -215,6 +221,7 @@ def csp_train(model, epoch, save_path, data_loader, info):
             output = model(y, None)
             loss = F.mse_loss(output, target)
             loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
             if loss.item() < init_loss:
@@ -241,6 +248,7 @@ def train(model, epoch, save_path, data_loader, info):
     optimizer = Adam(model.parameters())
     init_loss = 1
     for i in range(epoch):
+        torch.cuda.empty_cache()  # 清空缓存
         bar = tqdm(data_loader)
         for idx, data in enumerate(bar):
             optimizer.zero_grad()  # 梯度置为零
@@ -277,6 +285,7 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
     optimizer = Adam(stu.parameters())
     init_loss = 1
     for i in range(epoch):
+        torch.cuda.empty_cache()  # 清空缓存
         bar = tqdm(data_loader)
         for idx, data in enumerate(bar):
             optimizer.zero_grad()
@@ -285,6 +294,7 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
             stu_output = stu(data, None)
             loss = F.mse_loss(stu_output, teacher_ouput)
             loss.backward()
+            nn.utils.clip_grad_norm_(stu.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
             if loss.item() < init_loss:

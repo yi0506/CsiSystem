@@ -44,7 +44,7 @@ class Encoder(nn.Module):
     def __init__(self, ratio):
         super(Encoder, self).__init__()
         self.ratio = ratio  # 压缩率
-        self.fc_compress = nn.Linear(CSINetStuConfiguration.data_length, CSINetStuConfiguration.data_length // ratio)
+        self.fc_compress = nn.Linear(2048, 2048 // ratio)
 
     def forward(self, input_):
         """
@@ -52,7 +52,7 @@ class Encoder(nn.Module):
         
         """
         # 全连接
-        x = input_.view(-1, CSINetStuConfiguration.data_length)  # [batch_size, 2048]
+        x = input_.view(-1, 2048)  # [batch_size, 2048]
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
         return output
 
@@ -63,9 +63,9 @@ class Decoder(nn.Module):
     def __init__(self, ratio):
         super(Decoder, self).__init__()
         self.ratio = ratio  # 信道矩阵通道数
-        self.fc_restore = nn.Linear(CSINetStuConfiguration.data_length // ratio, CSINetStuConfiguration.data_length)
-        self.refine_net_1 = RefineNet(CSINetStuConfiguration.channel_num, CSINetStuConfiguration.channel_num)
-        self.refine_net_2 = RefineNet(CSINetStuConfiguration.channel_num, CSINetStuConfiguration.channel_num) 
+        self.fc_restore = nn.Linear(2048 // ratio, 2048)
+        self.refine_net_1 = RefineNet(2, 2)
+        self.refine_net_2 = RefineNet(2, 2) 
 
     def forward(self, encoder_output):
         """
@@ -77,10 +77,9 @@ class Decoder(nn.Module):
 
         # 全连接
         x = self.fc_restore(encoder_output)  # [batch_size, 2048]
-        x = x.view(-1, CSINetStuConfiguration.channel_num, CSINetStuConfiguration.maxtrix_len, CSINetStuConfiguration.maxtrix_len)  # [batch_size, 2, 32, 32]
+        x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # refine_net
         x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
-        x = res_unit(self.refine_net_2, x)  # [batch_size, 2, 32, 32]
         return x
 
 
@@ -88,16 +87,13 @@ class RefineNet(nn.Module):
     
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=CSINetStuConfiguration.kerner_size,
-                                 stride=CSINetStuConfiguration.stride, padding=CSINetStuConfiguration.padding)
+        self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=3, stride=1, padding=1)
         self.bn2d_1 = nn.BatchNorm2d(8)
         self.leak_relu_1 = nn.LeakyReLU(CSINetStuConfiguration.leak_relu_slope)
-        self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=CSINetStuConfiguration.kerner_size,
-                                 stride=CSINetStuConfiguration.stride, padding=CSINetStuConfiguration.padding)
+        self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.bn2d_2 = nn.BatchNorm2d(16)
         self.leak_relu_2 = nn.LeakyReLU(CSINetStuConfiguration.leak_relu_slope)
-        self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=CSINetStuConfiguration.kerner_size,
-                                 stride=CSINetStuConfiguration.stride, padding=CSINetStuConfiguration.padding)
+        self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
         self.bn2d_3 = nn.BatchNorm2d(out_channels)
         
     def forward(self, x):
@@ -106,6 +102,7 @@ class RefineNet(nn.Module):
         x = self.leak_relu_1(x)
         x = self.con2d_2(x)
         x = self.bn2d_2(x)
+        x = self.leak_relu_2(x)
         x = self.con2d_3(x)
         output = self.bn2d_3(x)
         return output
