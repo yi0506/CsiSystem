@@ -5,8 +5,8 @@ from libs.RM_net import RMNetConfiguration
 from libs.CSI_net import CSINetConfiguration
 from libs.cs import CSConfiguration, OMPCS
 from libs.visual import CSPlot, NetPlot, TimeForm
-from libs.CSI_Frame import COMM_RMNet_CSI, COMM_RMNetStu_CSI
-from libs.CSI_Frame import CSPNet_CSI, COMM_CSINet_CSI, COMM_CSINetStu_CSI, COMM_CS_CSI, ISTANetPlus_CSI
+from libs.CSI_Frame import COMM_RMNet_CSI, COMM_RMNetStu_CSI, FISTANet_CSI, ISTANet_CSI
+from libs.CSI_Frame import CSPNet_CSI, COMM_CSINet_CSI, COMM_CSINetStu_CSI, COMM_CS_CSI, ISTANetPlus_CSI, TD_FISTANet_CSI
 
 
 class Xun_Lian_He_Ce_Shi(object):
@@ -17,16 +17,38 @@ class Xun_Lian_He_Ce_Shi(object):
         cspnet = CSPNet_CSI()
         comm_rmnet_stu = COMM_RMNetStu_CSI()
         comm_csinet = COMM_CSINet_CSI()
+        td_fista = TD_FISTANet_CSI()
+        comm_fista = FISTANet_CSI()
+        comm_csinet_stu = COMM_CSINetStu_CSI()
+        ista_plus = ISTANetPlus_CSI()
+        ista = ISTANet_CSI()
 
-        # cspnet.net_train(ratio=8, epoch=80)
-        # cspnet.net_test(ratio=8)
+        cspnet.net_train(ratio=16, epoch=400)
+        cspnet.net_test(ratio=16)
 
+        comm_fista.net_train(ratio=16, layer_num=5, epoch=400)
+        comm_fista.net_test(ratio=16, layer_num=5)
 
-        comm_rmnet.net_train(ratio=16, epoch=100)
+        comm_rmnet_stu.net_train(ratio=16, epoch=400)
+        comm_rmnet_stu.net_test(ratio=16)
+
+        comm_rmnet.net_train(ratio=16, epoch=400)
         comm_rmnet.net_test(ratio=16, )
 
-        # comm_csinet.net_train(ratio=16, epoch=100)
-        # comm_csinet.net_test(ratio=16)
+        comm_csinet.net_train(ratio=16, epoch=400)
+        comm_csinet.net_test(ratio=16)
+
+        comm_csinet_stu.net_train(ratio=16, epoch=400)
+        comm_csinet_stu.net_test(ratio=16)
+
+        ista_plus.net_train(ratio=16, layer_num=5, epoch=400)
+        ista_plus.net_test(ratio=16, layer_num=5)
+
+        ista.net_train(ratio=16, layer_num=5, epoch=400)
+        ista.net_test(ratio=16, layer_num=5)
+
+        td_fista.net_train(ratio=16, layer_num=5, epoch=400)
+        td_fista.net_test(ratio=16, layer_num=5)
 
     def cs_csi(self):
         cs = COMM_CS_CSI()

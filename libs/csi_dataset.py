@@ -10,6 +10,7 @@ import os
 from libs import config
 from libs.utils import load_Phi
 from libs.ISTA_Net import ISTANetConfiguration
+from libs.CSP_net import CSPNetConfiguration
 
 
 class CsiDataset(Dataset):
@@ -190,21 +191,18 @@ class CSPNetDataset(COMM_Dataset):
         """
         FILE_PATH = r"{}/data/cost2100/DATA_Htrainin.npy".format(config.BASE_DIR) if is_train else r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
         self.ratio = ratio
-        self.y = None
+        Fi_m = CSPNetConfiguration.data_length // self.ratio
+        # 加载观测矩阵
+        Phi_path = "{}/data/CS/Phi_{}.npy".format(config.BASE_DIR, Fi_m)
+        self.Phi = torch.from_numpy(load_Phi(Phi_path)).float().to(config.device)
         self.Configuration.collate_fn = self.collate_fn
         self.data = np.load(FILE_PATH) if is_train else np.load(FILE_PATH)[:200]
         self.Configuration.batch_size = config.train_batch_size if is_train is True else config.test_batch_size
 
     def collate_fn(self, batch):
         target = torch.FloatTensor(batch).view(self.Configuration.batch_size, -1)
-        m = target.shape[1]
-        Fi_m = m // self.ratio
-        # 加载观测矩阵
-        Phi_path = "{}/data/CS/Phi_{}.npy".format(config.BASE_DIR, Fi_m)
-        Fi = load_Phi(Phi_path)
-        self.y = torch.mm(torch.tensor(Fi), target.t()).t()  # ((m, dim) * (dim, batch)).T
-        # 返回 [batch, 2048], [batch, 2048/ratio]
-        return target, self.y
+        # 返回 [batch, 2048]
+        return target
 
 
 class HS_CSDataset(HS_Dataset):

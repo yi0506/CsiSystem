@@ -165,8 +165,9 @@ class CSPNet_CSI(COMM_Net_CSI):
         model = self.CSI_MODEL(ratio)
         save_path = "./model/{}/common/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
-        dataloader = self.CSI_DATASET(True, ratio).get_data_loader()
-        self.TRAIN_FUNC(model, epoch, save_path, dataloader, info)
+        dataset = self.CSI_DATASET(True, ratio)
+        dataloader = dataset.get_data_loader()
+        self.TRAIN_FUNC(model, epoch, dataset.Phi, save_path, dataloader, info)
 
     def net_test(self, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在某个压缩率，测试不同信噪比下模型的效果"""

@@ -197,12 +197,13 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
 
 
 @obj_wrapper
-def csp_train(model, epoch, save_path, data_loader, info):
+def csp_train(model, epoch, Phi, save_path, data_loader, info):
     """
     进行模型训练
 
     model: 模型
     epoch: 模型迭代次数
+    Phi: 观测矩阵
     save_path: 模型保存路径
     data_loader: 数据集迭代器
     model_snr: 对模型训练时，加入某种信噪比的噪声，train中的snr对应test中的model_snr
@@ -214,22 +215,34 @@ def csp_train(model, epoch, save_path, data_loader, info):
     for i in range(epoch):
         torch.cuda.empty_cache()  # 清空缓存
         bar = tqdm(data_loader)
-        for idx, (target, y) in enumerate(bar):
+        for idx, target in enumerate(bar):
             optimizer.zero_grad()
             target = target.to(config.device)
-            y = y.to(config.device)
+            y = torch.mm(Phi, target.t()).t()  # ((m, dim) * (dim, batch)).T
             output = model(y, None)
             loss = F.mse_loss(output, target)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-            if loss.item() < init_loss:
-                init_loss = loss.item()
+        # 模型验证
+        with torch.no_grad():
+            loss_list = list()
+            for idx, batch_x in enumerate(comm_val_dataloader):
+                batch_x = batch_x.to(config.device)
+                Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
+                output = model(Phix, None)
+                batch_x = batch_x - 0.5
+                output = output - 0.5
+                cur_loss = F.mse_loss(output, batch_x).item()
+                loss_list.append(cur_loss)
+            val_loss = torch.mean(torch.tensor(loss_list))
+            if val_loss.item() < init_loss:
+                init_loss = val_loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(model.state_dict(), save_path)
                 print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if loss.item() < 1e-7:
+            if val_loss.item() < 1e-7:
                 return
 
 
@@ -266,6 +279,24 @@ def train(model, epoch, save_path, data_loader, info):
                 print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
             if loss.item() < 1e-7:
                 return
+        # 模型验证
+        with torch.no_grad():
+            loss_list = list()
+            for idx, batch_x in enumerate(comm_val_dataloader):
+                batch_x = batch_x.to(config.device)
+                output = model(batch_x, None)
+                batch_x = batch_x - 0.5
+                output = output - 0.5
+                cur_loss = F.mse_loss(output, batch_x).item()
+                loss_list.append(cur_loss)
+            val_loss = torch.mean(torch.tensor(loss_list))
+            if val_loss.item() < init_loss:
+                init_loss = val_loss.item()
+                rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                torch.save(model.state_dict(), save_path)
+                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+            if val_loss.item() < 1e-7:
+                return
 
 
 @obj_wrapper
@@ -297,10 +328,21 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
             nn.utils.clip_grad_norm_(stu.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-            if loss.item() < init_loss:
-                init_loss = loss.item()
+        # 模型验证
+        with torch.no_grad():
+            loss_list = list()
+            for idx, batch_x in enumerate(comm_val_dataloader):
+                batch_x = batch_x.to(config.device)
+                output = stu(batch_x, None)
+                batch_x = batch_x - 0.5
+                output = output - 0.5
+                cur_loss = F.mse_loss(output, batch_x).item()
+                loss_list.append(cur_loss)
+            val_loss = torch.mean(torch.tensor(loss_list))
+            if val_loss.item() < init_loss:
+                init_loss = val_loss.item()
                 rec_mkdir(save_path)  # 保证该路径下文件夹存在
                 torch.save(stu.state_dict(), save_path)
                 print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if loss.item() < 1e-7:
+            if val_loss.item() < 1e-7:
                 return
