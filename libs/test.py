@@ -200,7 +200,7 @@ def test(model, data_loader, snr, info: str = ""):
 
 
 @obj_wrapper
-def csp_test(model, data_loader, snr, info: str = ""):
+def csp_test(model, Phi, data_loader, snr, info: str = ""):
     """
     评估模型，并返回结果
 
@@ -217,9 +217,10 @@ def csp_test(model, data_loader, snr, info: str = ""):
     similarity_list = list()
     capacity_list = list()
     loss_list = list()
-    for _, (target, y) in enumerate(data_loader):
+    for _, target in enumerate(data_loader):
         with torch.no_grad():
             target = target.to(config.device)
+            y = torch.mm(Phi, target.t()).t()  # ((m, dim) * (dim, batch)).T
             y = y.to(config.device)
             output = model(y, snr)
             target = target - 0.5

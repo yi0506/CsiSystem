@@ -175,10 +175,11 @@ class CSPNet_CSI(COMM_Net_CSI):
         model_path = "./model/{}/common/ratio_{}/{}.ckpt".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME)
         model.load_state_dict(torch.load(model_path), strict=False)
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
-        data_loader = self.CSI_DATASET(False, ratio).get_data_loader()
+        dataset = self.CSI_DATASET(False, ratio)
+        data_loader = dataset.get_data_loader()
         result_dict = dict()
         for snr in SNRs:
-            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, data_loader, snr, info)
+            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, dataset.Phi, data_loader, snr, info)
         del model
         if save_ret:
             save_path = "./test_result/{}/common/ratio_{}/{}.pkl".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
