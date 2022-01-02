@@ -169,12 +169,7 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\t".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item()))
-            if loss_all.item() < init_loss:
-                init_loss = loss_all.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-            if loss_all.item() < 1e-7:
-                return
+
         # 模型验证
         with torch.no_grad():
             loss_list = list()
@@ -272,13 +267,7 @@ def train(model, epoch, save_path, data_loader, info):
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()  # 梯度更新
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-            if loss.item() < init_loss:
-                init_loss = loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if loss.item() < 1e-7:
-                return
+
         # 模型验证
         with torch.no_grad():
             loss_list = list()

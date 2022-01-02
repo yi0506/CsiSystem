@@ -23,7 +23,7 @@ class CSINetStu(nn.Module):
     def __init__(self, ratio):
         """
         CSINet网络模型
-        
+
         :param ratio: 压缩率
         """
         super(CSINetStu, self).__init__()
@@ -45,15 +45,17 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.ratio = ratio  # 压缩率
         self.fc_compress = nn.Linear(2048, 2048 // ratio)
+        self.dropout = nn.Dropout(0.1)
 
     def forward(self, input_):
         """
         编码器: 卷积 ---> 全连接压缩
-        
+
         """
         # 全连接
         x = input_.view(-1, 2048)  # [batch_size, 2048]
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
+        output = self.dropout(output)
         return output
 
 
@@ -65,7 +67,7 @@ class Decoder(nn.Module):
         self.ratio = ratio  # 信道矩阵通道数
         self.fc_restore = nn.Linear(2048 // ratio, 2048)
         self.refine_net_1 = RefineNet(2, 2)
-        self.refine_net_2 = RefineNet(2, 2) 
+        self.dropout = nn.Dropout(0.1)
 
     def forward(self, encoder_output):
         """
@@ -77,6 +79,7 @@ class Decoder(nn.Module):
 
         # 全连接
         x = self.fc_restore(encoder_output)  # [batch_size, 2048]
+        x = self.dropout(x)
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # refine_net
         x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
@@ -84,26 +87,32 @@ class Decoder(nn.Module):
 
 
 class RefineNet(nn.Module):
-    
+
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=3, stride=1, padding=1)
+        self.dropout_1 = nn.Dropout(0.1)
         self.bn2d_1 = nn.BatchNorm2d(8)
         self.leak_relu_1 = nn.LeakyReLU(CSINetStuConfiguration.leak_relu_slope)
         self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.dropout_2 = nn.Dropout(0.1)
         self.bn2d_2 = nn.BatchNorm2d(16)
         self.leak_relu_2 = nn.LeakyReLU(CSINetStuConfiguration.leak_relu_slope)
         self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
+        self.dropout_3 = nn.Dropout(0.1)
         self.bn2d_3 = nn.BatchNorm2d(out_channels)
-        
+
     def forward(self, x):
         x = self.con2d_1(x)
+        x = self.dropout_1(1)
         x = self.bn2d_1(x)
         x = self.leak_relu_1(x)
         x = self.con2d_2(x)
+        x = self.dropout_2(x)
         x = self.bn2d_2(x)
         x = self.leak_relu_2(x)
         x = self.con2d_3(x)
+        x = self.dropout_3(x)
         output = self.bn2d_3(x)
         return output
 

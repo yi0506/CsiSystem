@@ -23,17 +23,20 @@ class Xun_Lian_He_Ce_Shi(object):
         ista_plus = ISTANetPlus_CSI()
         ista = ISTANet_CSI()
 
+        td_fista.net_train(ratio=16, layer_num=5, epoch=400)
+        td_fista.net_test(ratio=16, layer_num=5)
+
         cspnet.net_train(ratio=16, epoch=400)
         cspnet.net_test(ratio=16)
 
         comm_fista.net_train(ratio=16, layer_num=5, epoch=400)
         comm_fista.net_test(ratio=16, layer_num=5)
+        
+        comm_rmnet.net_train(ratio=16, epoch=400)
+        comm_rmnet.net_test(ratio=16, )
 
         comm_rmnet_stu.net_train(ratio=16, epoch=400)
         comm_rmnet_stu.net_test(ratio=16)
-
-        comm_rmnet.net_train(ratio=16, epoch=400)
-        comm_rmnet.net_test(ratio=16, )
 
         comm_csinet.net_train(ratio=16, epoch=400)
         comm_csinet.net_test(ratio=16)
@@ -46,9 +49,6 @@ class Xun_Lian_He_Ce_Shi(object):
 
         ista.net_train(ratio=16, layer_num=5, epoch=400)
         ista.net_test(ratio=16, layer_num=5)
-
-        td_fista.net_train(ratio=16, layer_num=5, epoch=400)
-        td_fista.net_test(ratio=16, layer_num=5)
 
     def cs_csi(self):
         cs = COMM_CS_CSI()
