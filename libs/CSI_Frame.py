@@ -203,7 +203,6 @@ class COMM_RMNet_CSI(COMM_Net_CSI):
     TEST_FUNC = comm_csi_test  # 网络测试函数指针
 
 
-
 class COMM_NetStu_CSI(COMM_Net_CSI):
     """学生模型 CSI执行"""
     TEACHER = None
@@ -226,7 +225,7 @@ class COMM_CSINetStu_CSI(COMM_NetStu_CSI):
     CSI_MODEL = CSINetStu
     CSI_DATASET = COMM_CSINetStuDataset  # RMStuNet为学生模型，与教师模型使用同样数据集
     NETWORK_NAME = CSINetStuConfiguration.network_name
-    TEACHER = CsiNet
+    TEACHER = COMM_CSINet_CSI
 
 
 class COMM_RMNetStu_CSI(COMM_NetStu_CSI):
@@ -234,7 +233,7 @@ class COMM_RMNetStu_CSI(COMM_NetStu_CSI):
     CSI_MODEL = RMNetStu
     CSI_DATASET = COMM_RMNetStuDataset  # RMStuNet为学生模型，与教师模型使用同样数据集
     NETWORK_NAME = RMNetStuConfiguration.network_name
-    TEACHER = RMNet
+    TEACHER = COMM_RMNet_CSI
 
 
 class COMM_CS_CSI(metaclass=SingletonType):
@@ -257,7 +256,7 @@ class COMM_CS_CSI(metaclass=SingletonType):
 
     def cs_test(self, ratio, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在不同信噪比下对所有CS算法的评估，并将结果保存到文件中"""
-        data_loader = HS_CSDataset().get_data_loader()
+        data_loader = COMM_CSDataset().get_data_loader()
         for sparse, restore in self.CS_TP:
             result_dict = dict()
             full_sampling = False

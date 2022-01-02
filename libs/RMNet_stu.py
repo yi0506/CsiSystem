@@ -22,7 +22,7 @@ class RMNetStu(nn.Module):
     def __init__(self, ratio):
         """
         RMStuNet网络模型
-        
+
         :param ratio: 压缩率
         """
         super(RMNetStu, self).__init__()
@@ -57,7 +57,7 @@ class Encoder(nn.Module):
         """
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # 分组卷积
-        x = res_unit(self.group_conv_combo, x)  # [batch_size, 8, 32, 32]
+        x = res_unit(self.csi_conv1_combo, x)  # [batch_size, 8, 32, 32]
         x = x.view(-1, 2048)  # [batch_size, 2048]
         # 全连接
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
@@ -76,7 +76,7 @@ class Decoder(nn.Module):
             Conv2DWrapper(in_channels=8, out_channels=16, kenerl_size=3, stride=1, padding=1, groups=4),
             Conv2DWrapper(in_channels=16, out_channels=2, kenerl_size=3, stride=1, padding=1, groups=2)
         )
-        
+
     def forward(self, x):
         """
         数据解压缩：
@@ -87,7 +87,7 @@ class Decoder(nn.Module):
         # 标准化
         x = net_standardization(x)  # [batch_size, 2048/ratio]
         # 全连接
-        x = self.restore_fc(x)  # [batch_size, 2048]
+        x = self.fc_restore(x)  # [batch_size, 2048]
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # 分组卷积
         x = res_unit(self.group_conv_combo, x)  # [batch_size, 32, 32 ,32]
@@ -100,7 +100,7 @@ class Conv2DWrapper(nn.Module):
 
     def __init__(self, in_channels, out_channels, kenerl_size, stride, padding=0, groups=1):
         super().__init__()
-        self.conv2d = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, groups=groups, 
+        self.conv2d = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, groups=groups,
                                 kernel_size=kenerl_size, stride=stride, padding=padding)
         self.leaky_relu = nn.LeakyReLU(0.3)
         self.bn2d = nn.BatchNorm2d(out_channels)
