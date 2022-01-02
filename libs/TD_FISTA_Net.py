@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
 
-from utils import gs_noise, get_gs_noise_std
+from utils import gs_noise, get_gs_noise_std, net_standardization
 
 
 class TDFISTANetConfiguration(object):
@@ -42,6 +42,8 @@ class TDFISTANet(torch.nn.Module):
         # 是否加入噪声
         sigma = get_gs_noise_std(Phix, snr)
         Phix = gs_noise(Phix, snr)
+        # 去噪
+        Phix = net_standardization(Phix)
 
         # 信号恢复
         # (2048, m) * (m, 2048) = (2048, 2048)
@@ -60,6 +62,7 @@ class TDFISTANet(torch.nn.Module):
             h_iter.append(h.view(-1, 2048))
         # 取最后一次输出作为最终结果
         x_final = x
+        self.td.x_pre = x_final.detach()  # 保存上一个时刻的数据
 
         return [x_final, h_iter, layers_sym]
 
@@ -76,7 +79,6 @@ class TDBlock(torch.nn.Module):
     def forward(self, x):
         x = x - self.gamma * self.x_pre  # 马尔科夫时间差分
         Phix = torch.mm(self.Phi, x.T)  # 压缩  (m, 2048) * (2048, batch) = (m, batch)
-        self.x_pre = x.detach()  # 保存上一个时刻的数据
         return Phix.T
 
 
@@ -96,6 +98,12 @@ class BasicBlock(torch.nn.Module):
 
         self.conv_G = nn.Parameter(init.xavier_normal_(torch.Tensor(2, 32, 3, 3)))
 
+        self.bn1 = nn.BatchNorm2d(32)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.bn4 = nn.BatchNorm2d(2)
+        self.bn5 = nn.BatchNorm2d(32)
+
     def forward(self, y_k, h_k, PhiTPhi, PhiTb, sigma):
         """
         预测值是h_k，输入是上一次预测值y_(k-1)和h_(k-1)
@@ -106,13 +114,16 @@ class BasicBlock(torch.nn.Module):
         g_k = y_k + self.lambda_step * PhiTb
         x_input = g_k.view(-1, 2, 32, 32)
 
-        # R(·) (batch, 32, 32, 32) 
+        # R(·) (batch, 32, 32, 32)
         x_R = F.conv2d(x_input, self.conv_D, padding=1)
+        x_R = F.relu(x_R)
+        x_R = self.bn1(x_R)
 
-        # S(·) (batch, 32, 32, 32) 
+        # S(·) (batch, 32, 32, 32)
         x = F.conv2d(x_R, self.conv1_forward, padding=1)
         x = F.relu(x)
         x_forward = F.conv2d(x, self.conv2_forward, padding=1)
+        x_forward = self.bn2(x_forward)
 
         # soft(·) (batch, 32, 32, 32)
         # x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
@@ -122,9 +133,12 @@ class BasicBlock(torch.nn.Module):
         x = F.conv2d(x, self.conv1_backward, padding=1)
         x = F.relu(x)
         x_backward = F.conv2d(x, self.conv2_backward, padding=1)
+        x_backward = self.bn3(x_backward)
 
         # D(·)  (batch, 2, 32, 32)
         x_D = F.conv2d(x_backward, self.conv_G, padding=1)
+        x_D = F.relu(x_D)
+        x_D = self.bn4(x_D)
 
         # 预测值 h_k  (batch, 2, 32, 32)
         h_pred = x_input + x_D
@@ -137,6 +151,7 @@ class BasicBlock(torch.nn.Module):
         x = F.conv2d(x_forward, self.conv1_backward, padding=1)
         x = F.relu(x)
         x_D_est = F.conv2d(x, self.conv2_backward, padding=1)
+        x_D_est = self.bn5(x_D_est)
         symloss = x_D_est - x_R
 
         return [h_pred, y_pred, symloss]
