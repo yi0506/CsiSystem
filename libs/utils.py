@@ -87,7 +87,7 @@ def gs_noise(x, snr):
     对模型加入高斯白噪声
 
     噪音强度为: 10 ** (snr / 10)，其中snr为对应的信噪比
-    注：信号的幅度的平方==信号的功率，因此要开平方根
+    注: 信号的幅度的平方==信号的功率，因此要开平方根
     :param x: 信号
     :param snr: 信噪比
     :return: 加入噪声后的结果
@@ -99,6 +99,16 @@ def gs_noise(x, snr):
         noise_power = x_power / 10 ** (snr / 10)  # 噪声的功率
         gaussian = torch.normal(0, pow(noise_power, 0.5), x.size(), device=config.device)  # 产生对应信噪比的高斯白噪声
         return x + gaussian
+
+
+def get_gs_noise_std(x, snr):
+    """通过信噪比SNR，获取噪声方差"""
+    if snr is None:
+        return 0.001
+    with torch.no_grad():
+        x_power = (torch.sum(x ** 2) / x.numel()).item()  # 信号的功率
+        noise_power = x_power / 10 ** (snr / 10)  # 噪声的功率
+        return pow(noise_power, 0.5)
 
 
 def obj_wrapper(func):

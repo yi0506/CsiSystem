@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
 
-from utils import gs_noise
+from utils import gs_noise, get_gs_noise_std
 
 
 class TDFISTANetConfiguration(object):
@@ -40,6 +40,7 @@ class TDFISTANet(torch.nn.Module):
         Phix = self.td(x)
 
         # 是否加入噪声
+        sigma = get_gs_noise_std(Phix, snr)
         Phix = gs_noise(Phix, snr)
 
         # 信号恢复
@@ -54,7 +55,7 @@ class TDFISTANet(torch.nn.Module):
         h = x.view(-1, 2, 32, 32)  # h_0 初始化为x
         # 每一个phase进行迭代计算
         for i in range(self.LayerNo):
-            [x, h, layer_sym] = self.fcs[i](x, h, PhiTPhi, PhiTb)
+            [x, h, layer_sym] = self.fcs[i](x, h, PhiTPhi, PhiTb, sigma)
             layers_sym.append(layer_sym)
             h_iter.append(h.view(-1, 2048))
         # 取最后一次输出作为最终结果
@@ -84,7 +85,7 @@ class BasicBlock(torch.nn.Module):
         super(BasicBlock, self).__init__()
 
         self.lambda_step = nn.Parameter(torch.Tensor([0.5]))  # 梯度迭代步长
-        self.soft_thr = nn.Parameter(torch.Tensor([0.01]))  # 阈值函数步长
+        # self.soft_thr = nn.Parameter(torch.Tensor([0.01]))  # 阈值函数步长
         self.eta_step = nn.Parameter(torch.Tensor([0.1]))  # 加速梯度步长
         self.conv_D = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 2, 3, 3)))  # 32个，2通道，3*3卷积核
 
@@ -95,7 +96,7 @@ class BasicBlock(torch.nn.Module):
 
         self.conv_G = nn.Parameter(init.xavier_normal_(torch.Tensor(2, 32, 3, 3)))
 
-    def forward(self, y_k, h_k, PhiTPhi, PhiTb):
+    def forward(self, y_k, h_k, PhiTPhi, PhiTb, sigma):
         """
         预测值是h_k，输入是上一次预测值y_(k-1)和h_(k-1)
         """
@@ -114,7 +115,8 @@ class BasicBlock(torch.nn.Module):
         x_forward = F.conv2d(x, self.conv2_forward, padding=1)
 
         # soft(·) (batch, 32, 32, 32)
-        x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
+        # x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
+        x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - sigma))
 
         # S~(·)  (batch, 32, 32, 32)
         x = F.conv2d(x, self.conv1_backward, padding=1)
