@@ -53,25 +53,26 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
-        # 模型验证
-        with torch.no_grad():
-            loss_list = list()
-            for idx, batch_x in enumerate(comm_val_dataloader):
-                batch_x = batch_x.to(config.device)
-                Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
-                [output, _, _] = model(Phix, Phi, Qinit)
-                batch_x = batch_x - 0.5
-                output = output - 0.5
-                cur_loss = F.mse_loss(output, batch_x).item()
-                loss_list.append(cur_loss)
-            val_loss = torch.mean(torch.tensor(loss_list))
-            if val_loss.item() < init_loss:
-                init_loss = val_loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if val_loss.item() < 1e-7:
-                return
+            # 模型验证
+            if (idx + 1) % 10 == 0:
+                with torch.no_grad():
+                    loss_list = list()
+                    for idx, batch_x in enumerate(comm_val_dataloader):
+                        batch_x = batch_x.to(config.device)
+                        Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
+                        [output, _, _] = model(Phix, Phi, Qinit)
+                        batch_x = batch_x - 0.5
+                        output = output - 0.5
+                        cur_loss = F.mse_loss(output, batch_x).item()
+                        loss_list.append(cur_loss)
+                    val_loss = torch.mean(torch.tensor(loss_list))
+                    if val_loss.item() < init_loss:
+                        init_loss = val_loss.item()
+                        rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                        torch.save(model.state_dict(), save_path)
+                        print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+                    if val_loss.item() < 1e-7:
+                        return
 
 
 @obj_wrapper
@@ -113,24 +114,26 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
-        # 模型验证
-        with torch.no_grad():
-            loss_list = list()
-            for idx, batch_x in enumerate(comm_val_dataloader):
-                batch_x = batch_x.to(config.device)
-                [output, _, _] = model(batch_x, Qinit)
-                batch_x = batch_x - 0.5
-                output = output - 0.5
-                cur_loss = F.mse_loss(output, batch_x).item()
-                loss_list.append(cur_loss)
-            val_loss = torch.mean(torch.tensor(loss_list))
-            if val_loss.item() < init_loss:
-                init_loss = val_loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if val_loss.item() < 1e-7:
-                return
+
+            # 模型验证
+            if (idx + 1) % 10 == 0:
+                with torch.no_grad():
+                    loss_list = list()
+                    for idx, batch_x in enumerate(comm_val_dataloader):
+                        batch_x = batch_x.to(config.device)
+                        [output, _, _] = model(batch_x, Qinit)
+                        batch_x = batch_x - 0.5
+                        output = output - 0.5
+                        cur_loss = F.mse_loss(output, batch_x).item()
+                        loss_list.append(cur_loss)
+                    val_loss = torch.mean(torch.tensor(loss_list))
+                    if val_loss.item() < init_loss:
+                        init_loss = val_loss.item()
+                        rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                        torch.save(model.state_dict(), save_path)
+                        print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+                    if val_loss.item() < 1e-7:
+                        return
 
 
 @obj_wrapper
@@ -170,25 +173,26 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\t".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item()))
 
-        # 模型验证
-        with torch.no_grad():
-            loss_list = list()
-            for idx, batch_x in enumerate(comm_val_dataloader):
-                batch_x = batch_x.to(config.device)
-                Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
-                [output, _] = model(Phix, Phi, Qinit)
-                batch_x = batch_x - 0.5
-                output = output - 0.5
-                cur_loss = F.mse_loss(output, batch_x).item()
-                loss_list.append(cur_loss)
-            val_loss = torch.mean(torch.tensor(loss_list))
-            if val_loss.item() < init_loss:
-                init_loss = val_loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if val_loss.item() < 1e-7:
-                return
+            # 模型验证
+            if (idx + 1) % 10 == 0:
+                with torch.no_grad():
+                    loss_list = list()
+                    for idx, batch_x in enumerate(comm_val_dataloader):
+                        batch_x = batch_x.to(config.device)
+                        Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
+                        [output, _] = model(Phix, Phi, Qinit)
+                        batch_x = batch_x - 0.5
+                        output = output - 0.5
+                        cur_loss = F.mse_loss(output, batch_x).item()
+                        loss_list.append(cur_loss)
+                    val_loss = torch.mean(torch.tensor(loss_list))
+                    if val_loss.item() < init_loss:
+                        init_loss = val_loss.item()
+                        rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                        torch.save(model.state_dict(), save_path)
+                        print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+                    if val_loss.item() < 1e-7:
+                        return
 
 
 @obj_wrapper
@@ -220,25 +224,26 @@ def csp_train(model, epoch, Phi, save_path, data_loader, info):
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-        # 模型验证
-        with torch.no_grad():
-            loss_list = list()
-            for idx, batch_x in enumerate(comm_val_dataloader):
-                batch_x = batch_x.to(config.device)
-                Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
-                output = model(Phix, None)
-                batch_x = batch_x - 0.5
-                output = output - 0.5
-                cur_loss = F.mse_loss(output, batch_x).item()
-                loss_list.append(cur_loss)
-            val_loss = torch.mean(torch.tensor(loss_list))
-            if val_loss.item() < init_loss:
-                init_loss = val_loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if val_loss.item() < 1e-7:
-                return
+            # 模型验证
+            if (idx + 1) % 10 == 0:
+                with torch.no_grad():
+                    loss_list = list()
+                    for idx, batch_x in enumerate(comm_val_dataloader):
+                        batch_x = batch_x.to(config.device)
+                        Phix = torch.mm(batch_x, torch.transpose(Phi, 0, 1))  # 计算y
+                        output = model(Phix, None)
+                        batch_x = batch_x - 0.5
+                        output = output - 0.5
+                        cur_loss = F.mse_loss(output, batch_x).item()
+                        loss_list.append(cur_loss)
+                    val_loss = torch.mean(torch.tensor(loss_list))
+                    if val_loss.item() < init_loss:
+                        init_loss = val_loss.item()
+                        rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                        torch.save(model.state_dict(), save_path)
+                        print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+                    if val_loss.item() < 1e-7:
+                        return
 
 
 @obj_wrapper
@@ -267,25 +272,25 @@ def train(model, epoch, save_path, data_loader, info):
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()  # 梯度更新
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-
-        # 模型验证
-        with torch.no_grad():
-            loss_list = list()
-            for idx, batch_x in enumerate(comm_val_dataloader):
-                batch_x = batch_x.to(config.device)
-                output = model(batch_x, None)
-                batch_x = batch_x - 0.5
-                output = output - 0.5
-                cur_loss = F.mse_loss(output, batch_x).item()
-                loss_list.append(cur_loss)
-            val_loss = torch.mean(torch.tensor(loss_list))
-            if val_loss.item() < init_loss:
-                init_loss = val_loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(model.state_dict(), save_path)
-                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if val_loss.item() < 1e-7:
-                return
+            # 模型验证
+            if (idx + 1) % 10 == 0:
+                with torch.no_grad():
+                    loss_list = list()
+                    for idx, batch_x in enumerate(comm_val_dataloader):
+                        batch_x = batch_x.to(config.device)
+                        output = model(batch_x, None)
+                        batch_x = batch_x - 0.5
+                        output = output - 0.5
+                        cur_loss = F.mse_loss(output, batch_x).item()
+                        loss_list.append(cur_loss)
+                    val_loss = torch.mean(torch.tensor(loss_list))
+                    if val_loss.item() < init_loss:
+                        init_loss = val_loss.item()
+                        rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                        torch.save(model.state_dict(), save_path)
+                        print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+                    if val_loss.item() < 1e-7:
+                        return
 
 
 @obj_wrapper
@@ -318,20 +323,21 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
         # 模型验证
-        with torch.no_grad():
-            loss_list = list()
-            for idx, batch_x in enumerate(comm_val_dataloader):
-                batch_x = batch_x.to(config.device)
-                output = stu(batch_x, None)
-                batch_x = batch_x - 0.5
-                output = output - 0.5
-                cur_loss = F.mse_loss(output, batch_x).item()
-                loss_list.append(cur_loss)
-            val_loss = torch.mean(torch.tensor(loss_list))
-            if val_loss.item() < init_loss:
-                init_loss = val_loss.item()
-                rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                torch.save(stu.state_dict(), save_path)
-                print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-            if val_loss.item() < 1e-7:
-                return
+        if (idx + 1) % 10 == 0:
+            with torch.no_grad():
+                loss_list = list()
+                for idx, batch_x in enumerate(comm_val_dataloader):
+                    batch_x = batch_x.to(config.device)
+                    output = stu(batch_x, None)
+                    batch_x = batch_x - 0.5
+                    output = output - 0.5
+                    cur_loss = F.mse_loss(output, batch_x).item()
+                    loss_list.append(cur_loss)
+                val_loss = torch.mean(torch.tensor(loss_list))
+                if val_loss.item() < init_loss:
+                    init_loss = val_loss.item()
+                    rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                    torch.save(stu.state_dict(), save_path)
+                    print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+                if val_loss.item() < 1e-7:
+                    return

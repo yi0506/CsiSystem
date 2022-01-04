@@ -49,8 +49,6 @@ class Encoder(nn.Module):
             nn.LeakyReLU(0.3)
         )
         self.fc_compress = nn.Linear(2048, 2048 // ratio)
-        self.dropout_1 = nn.Dropout(0.1)
-        self.dropout_2 = nn.Dropout(0.1)
 
     def forward(self, input_):
         """
@@ -60,11 +58,9 @@ class Encoder(nn.Module):
         # 卷积
         x = input_.view(-1, 2, 32, 32)
         x = self.csi_conv1_combo(x)  # [batch_size, 2, 32, 32]
-        x = self.dropout_1(x)
         # 全连接
         x = x.view(-1, 2048)  # [batch_size, 2048]
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
-        output = self.dropout_2(output)
         return output
 
 
@@ -79,11 +75,9 @@ class Decoder(nn.Module):
         self.refine_net_2 = RefineNet(2, 2)
         self.conv2d_combo = nn.Sequential(
             nn.Conv2d(in_channels=2, out_channels=2, kernel_size=7, padding=3, groups=2),
-            nn.Dropout(0.1),
             nn.BatchNorm2d(2),
             nn.Sigmoid()
         )
-        self.dropout = nn.Dropout(0.1)
 
     def forward(self, x):
         """
@@ -100,7 +94,6 @@ class Decoder(nn.Module):
         x = net_standardization(x)  # [batch_size, 2048]
         # 全连接
         x = self.fc_restore(x)  # [batch_size, 2048]
-        x = self.dropout(x)
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # refine_net
         x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
