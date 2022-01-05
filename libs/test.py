@@ -4,7 +4,7 @@ import torch
 from torch.nn.functional import cosine_similarity
 
 import config
-from utils import obj_wrapper, nmse
+from utils import obj_wrapper, nmse, cal_capacity
 
 
 @obj_wrapper
@@ -25,8 +25,7 @@ def td_fista_test(model, Qinit, data_loader, snr, info: str = ""):
             cur_similarity = cosine_similarity(output, target, dim=-1).mean().cpu().item()
             cur_loss = F.mse_loss(output, target).item()
             cur_nmse = nmse(output, target, "torch")
-            # cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解SVD分解
-            cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * 10 / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            cur_capacity = cal_capacity(output, snr)
             capacity_list.append(cur_capacity / target.size()[0])
             nmse_list.append(cur_nmse)
             loss_list.append(cur_loss)
@@ -60,8 +59,7 @@ def fista_test(model, Phi, Qinit, data_loader, snr, info: str = ""):
             cur_similarity = cosine_similarity(output, target, dim=-1).mean().cpu().item()
             cur_loss = F.mse_loss(output, target).item()
             cur_nmse = nmse(output, target, "torch")
-            # cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解SVD分解
-            cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * 10 / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            cur_capacity = cal_capacity(output, snr)
             capacity_list.append(cur_capacity / target.size()[0])
             nmse_list.append(cur_nmse)
             loss_list.append(cur_loss)
@@ -95,8 +93,7 @@ def ista_test(model, Phi, Qinit, data_loader, snr, info: str = ""):
             cur_similarity = cosine_similarity(output, target, dim=-1).mean().cpu().item()
             cur_loss = F.mse_loss(output, target).item()
             cur_nmse = nmse(output, target, "torch")
-            # cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解SVD分解
-            cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * 10 / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            cur_capacity = cal_capacity(output, snr)
             capacity_list.append(cur_capacity / target.size()[0])
             nmse_list.append(cur_nmse)
             loss_list.append(cur_loss)
@@ -139,8 +136,7 @@ def comm_csi_test(model, data_loader, snr, info: str = ""):
             cur_similarity = cosine_similarity(output, input_, dim=-1).mean().cpu().item()
             cur_loss = F.mse_loss(output, input_).item()
             cur_nmse = nmse(output, input_, "torch")
-            # cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
-            cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * 10 / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            cur_capacity = cal_capacity(output, snr)
             capacity_list.append(cur_capacity / input_.size()[0])
             nmse_list.append(cur_nmse)
             loss_list.append(cur_loss)
@@ -183,8 +179,7 @@ def test(model, data_loader, snr, info: str = ""):
             cur_similarity = cosine_similarity(output, input_, dim=-1).mean().cpu().item()
             cur_loss = F.mse_loss(output, input_).item()
             cur_nmse = nmse(output, input_, "torch")
-            # cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
-            cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * 10 / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            cur_capacity = cal_capacity(output, snr)
             capacity_list.append(cur_capacity / input_.size()[0])
             nmse_list.append(cur_nmse)
             loss_list.append(cur_loss)
@@ -228,8 +223,7 @@ def csp_test(model, Phi, data_loader, snr, info: str = ""):
             cur_similarity = cosine_similarity(output, target, dim=-1).mean().cpu().item()
             cur_nmse = nmse(output, target, "torch")
             cur_loss = F.mse_loss(output, target).item()
-            # cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * snr / config.Nt)).item()  # 信道容量:SVD分解
-            cur_capacity = torch.log2(torch.sum(1 + torch.linalg.svd(output)[1] * 10 / config.Nt)).item()  # 信道容量:SVD分解SVD分解
+            cur_capacity = cal_capacity(output, snr)
             capacity_list.append(cur_capacity / y.size()[0])
             nmse_list.append(cur_nmse)
             loss_list.append(cur_loss)

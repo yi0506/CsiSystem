@@ -8,6 +8,15 @@ import torch.nn.functional as F
 from libs import config
 
 
+def cal_capacity(batch_x, snr):
+    """计算系统容量"""
+    if snr is None:
+        snr = 100
+    batch_x = batch_x.view(-1, 2, 32, 32)
+    batch_x = torch.sqrt(torch.pow(batch_x[:, 0, :, :], 2) + torch.pow(batch_x[:, 1, :, :], 2))
+    return torch.log2(torch.sum(1 + torch.linalg.svd(batch_x)[1] * snr / config.Nt, dim=-1)).mean().item()
+
+
 def load_Phi(Phi_path, raw=None, col=None):
     """加载观测矩阵Phi"""
     if os.path.exists(Phi_path):
