@@ -104,7 +104,7 @@ class RefineNet(nn.Module):
 
     def forward(self, x):
         x = self.con2d_1(x)
-        x = self.dropout_1(1)
+        x = self.dropout_1(x)
         x = self.bn2d_1(x)
         x = self.leak_relu_1(x)
         x = self.con2d_2(x)
