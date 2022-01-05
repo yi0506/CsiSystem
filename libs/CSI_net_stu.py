@@ -83,7 +83,8 @@ class Decoder(nn.Module):
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # refine_net
         x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
-        return x
+        output = x.view(-1, 2048)
+        return output
 
 
 class RefineNet(nn.Module):
