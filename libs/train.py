@@ -322,22 +322,22 @@ def train_stu(teacher, stu, epoch, save_path, data_loader, info):
             nn.utils.clip_grad_norm_(stu.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
             bar.set_description(info + "\tepoch:{}\tidx:{}\tloss:{:.4e}".format(i + 1, idx, loss.item()))
-        # 模型验证
-        if (idx + 1) % 10 == 0:
-            with torch.no_grad():
-                loss_list = list()
-                for idx, batch_x in enumerate(comm_val_dataloader):
-                    batch_x = batch_x.to(config.device)
-                    output = stu(batch_x, None)
-                    batch_x = batch_x - 0.5
-                    output = output - 0.5
-                    cur_loss = F.mse_loss(output, batch_x).item()
-                    loss_list.append(cur_loss)
-                val_loss = torch.mean(torch.tensor(loss_list))
-                if val_loss.item() < init_loss:
-                    init_loss = val_loss.item()
-                    rec_mkdir(save_path)  # 保证该路径下文件夹存在
-                    torch.save(stu.state_dict(), save_path)
-                    print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
-                if val_loss.item() < 1e-7:
-                    return
+            # 模型验证
+            if (idx + 1) % 10 == 0:
+                with torch.no_grad():
+                    loss_list = list()
+                    for idx, batch_x in enumerate(comm_val_dataloader):
+                        batch_x = batch_x.to(config.device)
+                        output = stu(batch_x, None)
+                        batch_x = batch_x - 0.5
+                        output = output - 0.5
+                        cur_loss = F.mse_loss(output, batch_x).item()
+                        loss_list.append(cur_loss)
+                    val_loss = torch.mean(torch.tensor(loss_list))
+                    if val_loss.item() < init_loss:
+                        init_loss = val_loss.item()
+                        rec_mkdir(save_path)  # 保证该路径下文件夹存在
+                        torch.save(stu.state_dict(), save_path)
+                        print("保存模型:{}....val_loss:{:.4e}".format(save_path, init_loss))
+                    if val_loss.item() < 1e-7:
+                        return
