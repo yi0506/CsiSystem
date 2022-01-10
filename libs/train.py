@@ -52,7 +52,7 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
             loss_all.backward()
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\t".format(i + 1, idx, loss_all.item()))
             # 模型验证
             if (idx + 1) % 10 == 0:
                 with torch.no_grad():
@@ -76,7 +76,7 @@ def fista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, inf
 
 
 @obj_wrapper
-def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info):
+def td_fista_train(model, epoch, layer_num, save_path, data_loader, info):
     """
     进行模型训练
 
@@ -97,7 +97,7 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
         bar = tqdm(data_loader)
         for idx, batch_x in enumerate(bar):
             batch_x = batch_x.to(config.device)
-            [x_output, h_iter, loss_layers_sym] = model(batch_x, Qinit)
+            [x_output, h_iter, loss_layers_sym] = model(batch_x)
             # 计算损失
             loss_discrepancy = torch.mean(torch.pow(x_output - batch_x, 2))
             loss_constraint = torch.tensor(0).float().to(config.device)
@@ -113,7 +113,7 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
             loss_all.backward()
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\tIteration Loss{:.4e}".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item(), loss_iteration.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\t".format(i + 1, idx, loss_all.item()))
 
             # 模型验证
             if (idx + 1) % 10 == 0:
@@ -121,7 +121,7 @@ def td_fista_train(model, epoch, Qinit, layer_num, save_path, data_loader, info)
                     loss_list = list()
                     for idx, batch_x in enumerate(comm_val_dataloader):
                         batch_x = batch_x.to(config.device)
-                        [output, _, _] = model(batch_x, Qinit)
+                        [output, _, _] = model(batch_x)
                         batch_x = batch_x - 0.5
                         output = output - 0.5
                         cur_loss = F.mse_loss(output, batch_x).item()
@@ -171,7 +171,7 @@ def ista_train(model, epoch, Qinit, Phi, layer_num, save_path, data_loader, info
             loss_all.backward()
             nn.utils.clip_grad_norm_(model.parameters(), config.clip)  # 进行梯度裁剪
             optimizer.step()
-            bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\tDiscrepancy Loss:{:.4e}\tConstraint Loss{:.4e}\t".format(i + 1, idx, loss_all.item(), loss_discrepancy.item(), loss_constraint.item()))
+            bar.set_description(info + "\tepoch:{}\tidx:{}\tTotal Loss:{:.4e}\t".format(i + 1, idx, loss_all.item()))
 
             # 模型验证
             if (idx + 1) % 10 == 0:

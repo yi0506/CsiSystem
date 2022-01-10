@@ -71,14 +71,15 @@ class SoftThreadFunc(nn.Module):
         super().__init__()
         self.conv_1 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
         self.conv_2 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
-        self.conv_3 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
+        # self.conv_3 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
+        TDFISTANetConfiguration.network_name = "TD-FISTANet-soft"
 
     def forward(self, x):
         x = self.conv_1(x)
         x = F.relu(x)
         x = self.conv_2(x)
-        x = F.relu(x)
-        x = self.conv_3(x)
+        # x = F.relu(x)
+        # x = self.conv_3(x)
         return x
 
 

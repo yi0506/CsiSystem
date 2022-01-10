@@ -8,7 +8,7 @@ from utils import obj_wrapper, nmse, cal_capacity
 
 
 @obj_wrapper
-def td_fista_test(model, Qinit, data_loader, snr, info: str = ""):
+def td_fista_test(model, data_loader, snr, info: str = ""):
     """ISTANet 评估模型"""
     model.to(config.device).eval()
     # 测试模型在某个信噪比下的效果，作为模型的评价效果
@@ -19,7 +19,7 @@ def td_fista_test(model, Qinit, data_loader, snr, info: str = ""):
     for _, target in enumerate(data_loader):
         with torch.no_grad():
             target = target.to(config.device)
-            [output, _, _] = model(target, Qinit, snr)
+            [output, _, _] = model(target, snr)
             target = target - 0.5
             output = output - 0.5
             cur_similarity = cosine_similarity(output, target, dim=-1).mean().cpu().item()

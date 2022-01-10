@@ -132,7 +132,7 @@ class TD_FISTANet_CSI(COMM_Net_CSI):
         info = "{}:\tratio:{}".format(self.NETWORK_NAME, ratio)
         dataset = self.CSI_DATASET(True, ratio)
         dataloader = dataset.get_data_loader()
-        self.TRAIN_FUNC(model, epoch, dataset.Qinit, layer_num, save_path, dataloader, info)
+        self.TRAIN_FUNC(model, epoch, layer_num, save_path, dataloader, info)
 
     def net_test(self, ratio, layer_num=TDFISTANetConfiguration.layer_num, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
         """在某个压缩率，测试不同信噪比下模型的效果"""
@@ -144,7 +144,7 @@ class TD_FISTANet_CSI(COMM_Net_CSI):
         dataloader = dataset.get_data_loader()
         result_dict = dict()
         for snr in SNRs:
-            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, dataset.Qinit, dataloader, snr, info)
+            result_dict["{}dB".format(snr)] = self.TEST_FUNC(model, dataloader, snr, info)
         del model
         if save_ret:
             save_path = "./test_result/{}/common/ratio_{}/{}.pkl".format(self.NETWORK_NAME, ratio, self.NETWORK_NAME) if not save_path else save_path
