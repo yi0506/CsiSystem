@@ -64,23 +64,22 @@ class TDFISTANet(torch.nn.Module):
         return [x_final, h_iter, layers_sym]
 
 
-class SoftThreadFunc(nn.Module):
-    """软阈值函数"""
+# class SoftThreadFunc(nn.Module):
+#     """软阈值函数"""
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.conv_1 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
-        self.conv_2 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
-        # self.conv_3 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
-        TDFISTANetConfiguration.network_name = "TD-FISTANet-soft"
+#     def __init__(self) -> None:
+#         super().__init__()
+#         self.conv_1 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
+#         self.conv_2 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
+#         self.conv_3 = torch.nn.Conv2d(32, 32, kernel_size=(3, 3), padding=1)
 
-    def forward(self, x):
-        x = self.conv_1(x)
-        x = F.relu(x)
-        x = self.conv_2(x)
-        # x = F.relu(x)
-        # x = self.conv_3(x)
-        return x
+#     def forward(self, x):
+#         x = self.conv_1(x)
+#         x = F.relu(x)
+#         x = self.conv_2(x)
+#         x = F.relu(x)
+#         x = self.conv_3(x)
+#         return x
 
 
 class TDBlock(torch.nn.Module):
@@ -115,7 +114,7 @@ class BasicBlock(torch.nn.Module):
 
         self.conv_G = nn.Parameter(init.xavier_normal_(torch.Tensor(2, 32, 3, 3)))
 
-        self.soft_thread = SoftThreadFunc()
+        # self.soft_thread = SoftThreadFunc()
 
     def forward(self, y_k, h_k, PhiTPhi, PhiTb):
         """
@@ -136,8 +135,8 @@ class BasicBlock(torch.nn.Module):
         x_forward = F.conv2d(x, self.conv2_forward, padding=1)
 
         # soft(·) (batch, 32, 32, 32)
-        # x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
-        x = self.soft_thread(x)
+        x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
+        # x = self.soft_thread(x)
 
         # S~(·)  (batch, 32, 32, 32)
         x = F.conv2d(x, self.conv1_backward, padding=1)
