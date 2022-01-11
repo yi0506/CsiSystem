@@ -98,6 +98,16 @@ class ISTANet_CSI(COMM_Net_CSI):
             rec_mkdir(save_path)
             pickle.dump(result_dict, open(save_path, "wb"))
 
+    @ratio_loop_wrapper
+    def net_joint_test(self, ratio, layer_num, SNRs=config.SNRs, save_ret: bool = True, save_path: str = "") -> None:
+        """在不同压缩率,测试不同信噪比模型的效果"""
+        self.net_test(ratio, layer_num, SNRs, save_ret, save_path)
+
+    @ratio_loop_wrapper
+    def net_joint_train(self, ratio, layer_num, epoch=config.epoch) -> None:
+        """在不同压缩率、不同速度的信道模型下，训练不同信噪比的模型"""
+        self.net_train(ratio, layer_num, epoch)
+
 
 class ISTANetPlus_CSI(ISTANet_CSI):
     """ISTANetPlus CSI执行"""
@@ -117,7 +127,7 @@ class FISTANet_CSI(ISTANet_CSI):
     TEST_FUNC = fista_test
 
 
-class TD_FISTANet_CSI(COMM_Net_CSI):
+class TD_FISTANet_CSI(ISTANet_CSI):
     """ISTANetPlus CSI执行"""
     CSI_MODEL = TDFISTANet  # 执行CSI的模型
     CSI_DATASET = COMM_TD_FISTANet_Dataset  # 执行CSI的模型的数据集
