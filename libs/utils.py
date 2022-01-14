@@ -135,7 +135,7 @@ def criteria_loop_wrapper(func):
     def call_func(obj, *args, **kwargs):
         criteria_li = kwargs.get("criteria", config.criteria_list)
         for criteria in criteria_li:
-            return func(obj, criteria=criteria, *args, **kwargs)
+            func(obj, criteria=criteria, *args, **kwargs)
 
     return call_func
 
@@ -147,7 +147,7 @@ def model_snr_loop_wrapper(func):
         # obj 为该实例对象
         model_snrs = kwargs.get('model_snrs', config.model_SNRs)
         for model_snr in model_snrs:
-            return func(obj, model_snr=model_snr, *args, **kwargs)
+            func(obj, model_snr=model_snr, *args, **kwargs)
 
     return call_func
 
@@ -159,7 +159,7 @@ def ratio_loop_wrapper(func):
         # obj 为该实例对象
         r_list = kwargs.get('r_list', config.ratio_list)
         for ratio in r_list:
-            return func(obj, ratio=ratio, *args, **kwargs)
+            func(obj, ratio=ratio, *args, **kwargs)
 
     return call_func
 
@@ -171,7 +171,7 @@ def v_loop_wrapper(func):
         # obj 为该实例对象
         velocity = kwargs.get('v_list', config.velocity_list)
         for v in velocity:
-            return func(obj, v=v, *args, **kwargs)
+            func(obj, v=v, *args, **kwargs)
 
     return call_func
 

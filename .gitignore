@@ -4,6 +4,11 @@ __pycache__/
 *$py.class
 
 .idea/
+model/
+images/
+test_result/
+data/
+
 
 # C extensions
 *.so
