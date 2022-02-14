@@ -9,7 +9,7 @@ class RMNetConfiguration(object):
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
     data_length = 2048  # 信号矩阵变成一维向量后的长度 2048 == 2 * 32 *32
-    kerner_size = 3
+    kerner_size = 7
     stride = 1
     padding = 1
     sys_capacity_ratio = 60  # 系统容量倍率（可视化时使用）
