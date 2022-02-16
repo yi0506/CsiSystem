@@ -92,7 +92,7 @@ class COMM_CSDataset(COMM_Dataset):
 
     def collate_fn(self, batch):
         # 返回 [2048, 1]
-        return batch[0].reshape(-1, 1)
+        return batch[0].reshape(-1, 1) - 0.5
 
 
 class COMM_ISTANet_Dataset(COMM_Dataset):
