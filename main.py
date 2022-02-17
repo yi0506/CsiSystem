@@ -52,7 +52,7 @@ class Xun_Lian_He_Ce_Shi(object):
 
     def cs_csi(self):
         cs = COMM_CS_CSI()
-        cs.cs_register(OMPCS, CSConfiguration.sparse_dct, CSConfiguration.omp)
+        cs.cs_register(OMPCS, CSConfiguration.sparse_eye, CSConfiguration.omp)
         cs.CS_joint_test()
 
 

@@ -175,6 +175,11 @@ def generate_dct_sparse_base(dim):
     pickle.dump(A, open("{}/data/dct_sp.pkl".format(config.BASE_DIR), "wb"))
 
 
+def generate_eye_sparse_base(dim):
+    """获得DCT稀疏基"""
+    return np.eye(dim, dim)
+
+
 def generate_fft_sparse_base(N):
     """
     获得FFT稀疏基

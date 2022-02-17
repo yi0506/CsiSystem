@@ -257,7 +257,7 @@ class COMM_CS_CSI(metaclass=SingletonType):
         注册CS的方法
 
         cls: CS类
-        sparse: 采用的稀疏基，"dct" 或者 "fft"
+        sparse: 采用的稀疏基, "dct" 或者 "fft"
         restore: 采用的恢复方法
 
         """
@@ -269,12 +269,9 @@ class COMM_CS_CSI(metaclass=SingletonType):
         data_loader = COMM_CSDataset().get_data_loader()
         for sparse, restore in self.CS_TP:
             result_dict = dict()
-            full_sampling = False
-            if restore == "idct" or restore == "ifft":
-                full_sampling = True
             # 在不同信噪比下测试CS方法的效果
             for snr in SNRs:
-                ret = self.RESTORE_DIC[restore](snr=snr, ratio=ratio, sparse=sparse, restore=restore, full_sampling=full_sampling, data_loader=data_loader)()
+                ret = self.RESTORE_DIC[restore](snr=snr, ratio=ratio, sparse=sparse, restore=restore, data_loader=data_loader)()
                 result_dict["{}dB".format(snr)] = ret
             if save_ret:
                 # 保存测试结果到文件中
@@ -341,12 +338,9 @@ class HS_CS_CSI(COMM_CS_CSI):
         data_loader = HS_CSDataset(v).get_data_loader()
         for sparse, restore in self.CS_TP:
             result_dict = dict()
-            full_sampling = False
-            if restore == "idct" or restore == "ifft":
-                full_sampling = True
             # 在不同信噪比下测试CS方法的效果
             for snr in SNRs:
-                ret = self.RESTORE_DIC[restore](snr=snr, ratio=ratio, sparse=sparse, restore=restore, full_sampling=full_sampling, data_loader=data_loader)()
+                ret = self.RESTORE_DIC[restore](snr=snr, ratio=ratio, sparse=sparse, restore=restore, data_loader=data_loader)()
                 result_dict["{}dB".format(snr)] = ret
             if save_ret:
                 # 保存测试结果到文件中

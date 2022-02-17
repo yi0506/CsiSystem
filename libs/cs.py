@@ -9,23 +9,21 @@ import os
 from abc import ABCMeta, abstractmethod
 
 from libs import config
-from cs_restore_method import OMP, SP, SAMP, generate_fft_sparse_base, generate_dct_sparse_base
+from cs_restore_method import OMP, SP, SAMP, generate_fft_sparse_base, generate_dct_sparse_base, generate_eye_sparse_base
 from utils import nmse, load_Phi, cal_capacity
 
 
 class CSConfiguration(object):
     cs_data_length = 2048
-    k = 40  # k 稀疏度，由于存在sp算法，k不能大于32，否则k会大于Beta矩阵的行数
     samp_t = 1  # samp算法步长
     # 稀疏基
     sparse_dct = "dct"
     sparse_fft = "fft"
+    sparse_eye = "eye"
     # CS恢复算法
     omp = "omp"
     samp = "samp"
     sp = "sp"
-    ifft = "ifft"
-    idct = "idct"
 
 
 class BaseCS(metaclass=ABCMeta):
@@ -65,7 +63,6 @@ class BaseCS(metaclass=ABCMeta):
                 self.sparse  # 确定稀疏基
                 self.restore   # 确定重构算法
                 self.snr  # 信噪比
-                self.full_sampling  # 是否全采样，即使用dct，fft压缩
                 self.ratio  # 压缩率
                 self.data_loader = data_loader  # 数据集迭代器
 
@@ -85,6 +82,8 @@ class BaseCS(metaclass=ABCMeta):
             if not os.path.exists("./data/CS/fft_sp.pkl"):
                 generate_fft_sparse_base(CSConfiguration.cs_data_length)
             return pickle.load(open("./data/CS/fft_sp.pkl", "rb"))  # 获得稀疏基
+        elif method == "EYE":
+            return generate_eye_sparse_base(CSConfiguration.cs_data_length)
         else:
             exit("压缩方法错误")
 
@@ -117,30 +116,20 @@ class BaseCS(metaclass=ABCMeta):
 
     def __compress(self, data):
         """
-        压缩数据：
-            获得稀疏基与观测矩阵Fi，通过计算，返回传感矩阵与观测向量,根据是否进行全采样，选择不同压缩方式
-            is_full_sampling: 是否进行全采样
+        压缩数据:
+            获得稀疏基与观测矩阵Fi, 通过计算, 返回传感矩阵与观测向量
         :param data:[?, 1]
-        :return: 传感矩阵beta，压缩后的数据y,稀疏度k
+        :return: 传感矩阵beta, 压缩后的数据y,稀疏度k
         """
         Phi_m = CSConfiguration.cs_data_length // self.ratio  # 得到观测矩阵的行数
         dim = data.shape[0]
-        if not self.full_sampling:
-            # 加载观测矩阵
-            Phi_path = "{}/data/CS/Phi_{}.npy".format(config.BASE_DIR, Phi_m)
-            Phi = load_Phi(Phi_path)
-            y = np.matmul(Phi, data)  # 观测向量
-            Beta = np.matmul(Phi, self.sparse_matrix)  # 传感矩阵
-            # 确定稀疏度k
-            k = CSConfiguration.k
-        else:
-            Beta = None
-            k = None
-            y = np.matmul(self.sparse_matrix, data)
-            # 只保留前Phi_m个绝对值最大的元素,其余置为0, Phi_m = data_length / Fi_ratio
-            temp_y = np.abs(y)
-            temp_max = np.sort(temp_y, axis=0)[dim - Phi_m]
-            y[temp_y < temp_max] = 0
+        # 加载观测矩阵
+        Phi_path = "{}/data/CS/Phi_{}.npy".format(config.BASE_DIR, Phi_m)
+        Phi = load_Phi(Phi_path)
+        y = np.matmul(Phi, data)  # 观测向量
+        Beta = np.matmul(Phi, self.sparse_matrix)  # 传感矩阵
+        # 确定稀疏度k
+        k = np.sum(y != 0)
         return y, Beta, k
 
     def __channel(self, y):
@@ -156,7 +145,7 @@ class BaseCS(metaclass=ABCMeta):
         else:
             return self.__gs_noise(y, self.snr)
 
-    def __restore(self, method, y_add_noise, Beta, k):
+    def __restore(self, y_add_noise, Beta, k):
         """
         对y进行重构，恢复成原始数据
         :param y_add_noise: 经过信道后的压缩数据
@@ -168,8 +157,10 @@ class BaseCS(metaclass=ABCMeta):
             return self.DCT_restore(y_add_noise, Beta, k)
         elif self.sparse == "fft":
             return self.FFT_restore(y_add_noise, Beta, k)
+        elif self.sparse == "eye":
+            return self.EYE_restore(y_add_noise, Beta, k)
         else:
-            raise ValueError("只能写dft或者fft")
+            raise ValueError("只能写dft, fft, eye")
 
     def __evaluate(self, data, refine_data):
         """评估余弦相似度、mse损失"""
@@ -227,6 +218,14 @@ class BaseCS(metaclass=ABCMeta):
         restore_s = self.CS_p( y_add_noise, Beta, k)
         restore_data = np.matmul(self.sparse_matrix.T, restore_s)
         return restore_data
+    
+    def EYE_restore(self, y_add_noise, Beta, k):
+        """
+        不需要稀疏变换的CS重构算法
+        func: 需要执行的具体CS算法
+        param: 执行func所指向的算法所需的必要参数
+        """
+        return self.CS_p( y_add_noise, Beta, k)
 
     @abstractmethod
     def CS_p(self, y_add_noise, Beta, k):
@@ -241,7 +240,6 @@ class OMPCS(BaseCS):
     """基于OMP的CS方法"""
     
     def CS_p(self, y_add_noise, Beta, k, *args):
-        """当稀疏基是dct变换基时，将恢复的稀疏系数s计算idct，恢复数据data"""
         return OMP(y_add_noise, Beta, k)
 
 
@@ -249,7 +247,6 @@ class SPCS(BaseCS):
     """基于SP的CS方法"""
 
     def CS_p(self, y_add_noise, Beta, k, *args):
-        """基于DCT稀疏基的SP重构算法"""
         return SP(y_add_noise, Beta, k)
 
 
@@ -257,28 +254,8 @@ class SAMPCS(BaseCS):
     """基于SAMP的CS算法"""
     
     def CS_p(self, y_add_noise, Beta, k, *args):
-        """基于DCT稀疏基的SAMP重构算法"""
         # 返回恢复后的数据
         return SAMP(y_add_noise, Beta, CSConfiguration.samp_t)
-
-
-class DCTCS(BaseCS):
-    """基于DCT的CS方法"""
-
-    def CS_p(self, y_add_noise, Beta, k, *args):
-        """DCT逆变换"""
-        return np.matmul(self.sparse_matrix.T, y_add_noise)
-
-
-class FFTCS(BaseCS):
-    """基于FFT的CS方法"""
-
-    def CS_p(self, y_add_noise, Beta, k, *args):
-        """FFT逆变换"""
-        x_row = y_add_noise.shape[0]
-        S_conj = np.conjugate(self.sparse_matrix)
-        data = np.matmul(S_conj, y_add_noise) / x_row
-        return np.real(data)
 
 
 if __name__ == '__main__':
