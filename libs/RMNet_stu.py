@@ -37,16 +37,12 @@ class RMNetStu(nn.Module):
 
 
 class Encoder(nn.Module):
-    """MS压缩"""
+    """压缩"""
 
     def __init__(self, ratio):
         super(Encoder, self).__init__()
         self.ratio = ratio  # 压缩率
-        self.csi_conv1_combo = nn.Sequential(
-            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1, groups=2),
-            nn.BatchNorm2d(2),
-            nn.LeakyReLU(0.3)
-        )
+        self.csi_conv1_combo = Conv2DWrapper(in_channels=2, out_channels=2, kenerl_size=3, stride=1, padding=1, groups=2)
         self.fc_compress = nn.Linear(2048, 2048 // ratio)
 
     def forward(self, x):
@@ -71,10 +67,12 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.ratio = ratio
         self.fc_restore = nn.Linear(2048 // ratio, 2048)
-        self.group_conv_combo = nn.Sequential(
-            Conv2DWrapper(in_channels=2, out_channels=8, kenerl_size=3, stride=1, padding=1, groups=2),
-            Conv2DWrapper(in_channels=8, out_channels=16, kenerl_size=3, stride=1, padding=1, groups=4),
-            Conv2DWrapper(in_channels=16, out_channels=2, kenerl_size=3, stride=1, padding=1, groups=2),
+        self.group_conv_combo1 = GroupConvCombo()
+        self.group_conv_combo2 = GroupConvCombo()
+        self.group_conv_combo3 = GroupConvCombo()
+        self.conv2d_combo = nn.Sequential(
+            nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1, groups=2),
+            nn.BatchNorm2d(2),
             nn.Sigmoid()
         )
 
@@ -85,16 +83,31 @@ class Decoder(nn.Module):
         :param x: [batch_size, 32*32]
         :return: [batch_size, 32*32]
         """
-        # 标准化
-        x = net_standardization(x)  # [batch_size, 2048/ratio]
         # 全连接
         x = self.fc_restore(x)  # [batch_size, 2048]
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # 分组卷积
-        x = res_unit(self.group_conv_combo, x)  # [batch_size, 32, 32 ,32]
+        x = res_unit(self.group_conv_combo1, x)  # [batch_size, 2, 32 ,32]
+        x = res_unit(self.group_conv_combo2, x)  # [batch_size, 2, 32 ,32]
+        x = res_unit(self.group_conv_combo3, x)  # [batch_size, 2, 32 ,32]
+        x = self.conv2d_combo(x)  # [batch_size, 2, 32 ,32]
         output = x.view(-1, 2048)  # [batch_size, 2*32*32]
         return output
 
+
+class GroupConvCombo(nn.Module):
+    
+    def __init__(self):
+        super().__init__()
+        self.conv1 = Conv2DWrapper(in_channels=2, out_channels=4, kenerl_size=3, stride=1, padding=1, groups=2)
+        self.conv2 = Conv2DWrapper(in_channels=4, out_channels=4, kenerl_size=3, stride=1, padding=1, groups=4)
+        self.conv3 = Conv2DWrapper(in_channels=4, out_channels=2, kenerl_size=3, stride=1, padding=1, groups=2)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        return x
 
 class Conv2DWrapper(nn.Module):
     """分组卷积"""

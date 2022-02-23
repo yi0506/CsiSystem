@@ -66,7 +66,7 @@ class Decoder(nn.Module):
         self.fc_restore = nn.Linear(2048 // ratio, 2048)
         self.refine_net_1 = RefineNet(2, 2)
 
-    def forward(self, encoder_output):
+    def forward(self, x):
         """
         全连接 ----> reshape ----> 残差（refine_net） ----> 残差（refine_net） -----> 卷积  -----> reshape
 
@@ -75,7 +75,7 @@ class Decoder(nn.Module):
         """
 
         # 全连接
-        x = self.fc_restore(encoder_output)  # [batch_size, 2048]
+        x = self.fc_restore(x)  # [batch_size, 2048]
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]
         # refine_net
         x = res_unit(self.refine_net_1, x)  # [batch_size, 2, 32, 32]
@@ -89,10 +89,10 @@ class RefineNet(nn.Module):
         super().__init__()
         self.con2d_1 = nn.Conv2d(in_channels=in_channels, out_channels=8, kernel_size=3, stride=1, padding=1)
         self.bn2d_1 = nn.BatchNorm2d(8)
-        self.leak_relu_1 = nn.LeakyReLU(CSINetStuConfiguration.leak_relu_slope)
+        self.leak_relu_1 = nn.LeakyReLU(0.3)
         self.con2d_2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.bn2d_2 = nn.BatchNorm2d(16)
-        self.leak_relu_2 = nn.LeakyReLU(CSINetStuConfiguration.leak_relu_slope)
+        self.leak_relu_2 = nn.LeakyReLU(0.3)
         self.con2d_3 = nn.Conv2d(in_channels=16, out_channels=out_channels, kernel_size=3, stride=1, padding=1)
         self.bn2d_3 = nn.BatchNorm2d(out_channels)
 

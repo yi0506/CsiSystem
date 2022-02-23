@@ -89,6 +89,7 @@ class COMM_CSDataset(COMM_Dataset):
         FILE_PATH = r"{}/data/cost2100/DATA_Htestin.npy".format(config.BASE_DIR)
         self.data = np.load(FILE_PATH)[:1000]
         self.Configuration.collate_fn = self.collate_fn
+        self.Configuration.batch_size = 1
 
     def collate_fn(self, batch):
         # 返回 [2048, 1]
