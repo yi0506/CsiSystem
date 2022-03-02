@@ -112,7 +112,7 @@ class Plot(metaclass=ABCMeta):
             return criteria
 
     @staticmethod
-    def set_description(title, xlabel, ylabel, img_name, **description):
+    def set_description(xlabel, ylabel, img_name, **description):
         """根据描述信息画图"""
         # 非必须
         use_grid = description.get("use_grid", False)
@@ -120,11 +120,13 @@ class Plot(metaclass=ABCMeta):
         yticks = description.get("yticks")
         loc = description.get("loc", "best")
         yscale = description.get("yscale")
+        title = description.get("title")
         # 添加描述信息
-        plt.xlabel(xlabel, fontsize=12)
-        plt.ylabel(ylabel, fontsize=12)
-        plt.title(title, fontsize=15)
-        plt.legend(loc=loc, prop={'family': "Times New Roman", "size": 12})
+        plt.xlabel(xlabel, fontsize=15)
+        plt.ylabel(ylabel, fontsize=15)
+        plt.legend(loc=loc, prop={'family': "Times New Roman", "size": 15})
+        if title:
+            plt.title(title, fontsize=18)
         if yscale:
             plt.yscale('log')
         if yticks:
@@ -136,7 +138,7 @@ class Plot(metaclass=ABCMeta):
         else:
             plt.xticks(fontproperties="Times New Roman")
         if use_grid:
-            plt.grid(linestyle="--", alpha=0.4)
+            plt.grid(linestyle="--", alpha=0.8)
         rec_mkdir(img_name)
         plt.savefig(img_name, bbox_inches='tight', pad_inches=0)
         plt.close()
@@ -151,121 +153,117 @@ class Plot(metaclass=ABCMeta):
 class NetPlot(Plot):
     CAT = "Net"  # 图片分类
 
-    def draw(self, env, networks, criteria, img_format, ratio_list):
+    def draw(self, env, networks, criteria, img_format, ratio):
         """
-        :param ratio_list: 压缩率列表
+        :param ratio: 压缩率
         :param img_format: 图片格式
         :param env: 测试数据的环境
         :param networks: 不同网络模型
-        :param criteria: "loss"、"相似度"、"time"、"capacity"
+        :param criteria: "loss"、"相似度"、"capacity"
         比较不同压缩率的情况下，不同网络的随着snr的变化的效果
         """
         x = config.SNRs
         plt.figure()
-        for ratio in ratio_list:
-            # 获取数据
-            data = self.dl.load_net_data(env, ratio, networks)
-            # 解析数据
-            for idx, (network, val) in enumerate(data.items()):
-                y = []
-                for dB in x:
-                    y.append(val["{}dB".format(dB)][criteria])
-                plt.plot(x, y, label=r"1/{} {}".format(ratio, network), marker=self.marker_list[idx],
-                         linestyle=self.line_style[idx], markerfacecolor="none", markersize=8, linewidth=2)
+        # 获取数据
+        data = self.dl.load_net_data(env, ratio, networks)
+        # 解析数据
+        for idx, (network, val) in enumerate(data.items()):
+            y = []
+            for dB in x:
+                y.append(val["{}dB".format(dB)][criteria])
+            plt.plot(x, y, label=r"{}".format(network), marker=self.marker_list[idx],
+                        linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
         # 添加描述信息
         criteria_label = self.trans_criteria(criteria)
-        # title = r"$\mathrm{{{}km/h}}$".format(v)
-        title = r"$\mathrm{xxxx}$对比"
+        title = r"$\mathrm{{r={}}}$".format(ratio)
         xlabel = r"$\mathrm{SNR(dB)}$"
         ylabel = r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria_label) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria_label)
-        img_name = "./images/{}/{}/net-{}.{}".format(env, self.CAT, criteria, img_format)
-        use_gird = True
+        img_name = "./images/{}/{}/net-{}-{}.{}".format(env, self.CAT, criteria, ratio, img_format)
+        use_grid = True
         yticks = config.y_ticks_similarity if criteria == "相似度" else None
         loc = "best"  # "lower right"
-        self.set_description(title, xlabel, ylabel, img_name, use_gird=use_gird, yticks=yticks, loc=loc)
+        self.set_description(xlabel, ylabel, img_name, use_grid=use_grid, yticks=yticks, loc=loc)
 
 
 class CSPlot(Plot):
     CAT = "CS"  # 图片分类
 
-    def draw(self, env, methods, criteria, img_format, ratio_list):
+    def draw(self, env, methods, criteria, img_format, ratio):
         """
-        :param ratio_list: 压缩率列表
+        :param ratio: 压缩率
         :param img_format: 图片格式
         :param methods: 不同CS方法
         :param env: 测试数据环境
-        :param criteria: "loss"、"similarity"、"time"、"capacity"
+        :param criteria: "loss"、"similarity"、"capacity"
         在不同压缩率下，绘制不同cs方法的criteria随着snr的变化
         """
         x = config.SNRs
         plt.figure()
-        for ratio in ratio_list:
-            # 获取数据
-            data = self.dl.load_cs_data(env, ratio, methods)
-            # 解析数据
-            for idx, (methdod, val) in enumerate(data.items()):
-                y = []
-                for dB in x:
-                    y.append(val["{}dB".format(dB)][criteria])
-                plt.plot(x, y, label=r"1/{} {}".format(ratio, methdod), marker=self.marker_list[idx],
-                         linestyle=self.line_style[idx], markerfacecolor="none", markersize=8, linewidth=2)
+        # 获取数据
+        data = self.dl.load_cs_data(env, ratio, methods)
+        # 解析数据
+        for idx, (methdod, val) in enumerate(data.items()):
+            y = []
+            for dB in x:
+                y.append(val["{}dB".format(dB)][criteria])
+            plt.plot(x, y, label=r"1/{} {}".format(ratio, methdod), marker=self.marker_list[idx],
+                        linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
         # 添加描述信息
         criteria_label = self.trans_criteria(criteria)
-        title = r"$\mathrm{xxxx}$对比"
+        title = r"$\mathrm{{r={}}}$".format(ratio)
         xlabel = r"$\mathrm{SNR(dB)}$"
         ylabel = r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria_label) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria_label)
-        img_name = "./images/{}/{}/CS-{}.{}".format(env, self.CAT, criteria, img_format)
-        use_gird = True
+        img_name = "./images/{}/{}/CS-{}-{}.{}".format(env, self.CAT, criteria, ratio, img_format)
+        use_grid = True
         yticks = config.y_ticks_similarity if criteria == "相似度" else None
         loc = "best"  # "lower right"
-        self.set_description(title, xlabel, ylabel, img_name, use_gird=use_gird, yticks=yticks, loc=loc)
+        self.set_description(xlabel, ylabel, img_name, use_grid=use_grid, yticks=yticks, loc=loc)
 
 
-class CSNetMultiRatio(Plot):
-    CAT = "CSNetMulti"
+class CSNetPlot(Plot):
+    CAT = "CSNet"
 
-    def draw(self, env, networks, methods, criteria, img_format, ratio_list):
+    def draw(self, env, networks, methods, criteria, img_format, ratio):
         """
         :param env: 测试数据环境
         :param networks: 不同网络模型
-        :param ratio_list: 压缩率列表
+        :param ratio: 压缩率
         :param img_format: 图片格式
         :param methods: 不同CS方法
-        :param criteria: "loss"、"相似度"、"time"、"capacity"
-        在的不同缩率下，绘制不同cs方法的criteria随着snr的变化，同时与神经网络进行对比
+        :param criteria: "loss"、"相似度"、"capacity"
+        绘制不同CS和DL算法的criteria随着snr的变化，同时与神经网络进行对比
         """
         x = config.SNRs
         plt.figure()
-        for ratio in ratio_list:
-            # 获取CS数据
-            data_cs = self.dl.load_cs_data(env, ratio, methods)
-            # 解析数据
-            for methdod, val in data_cs.items():
-                y = []
-                for dB in x:
-                    y.append(val["{}dB".format(dB)][criteria])
-                plt.plot(x, y, label=r"1/{} {}".format(ratio, methdod), marker=self.marker_list[0],
-                         linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
-            # 获取神经网络数据
-            data_net = self.dl.load_net_data(env, ratio, networks)
-            # 解析数据
-            for network, val in data_net.items():
-                y = []
-                for dB in x:
-                    y.append(val["{}dB".format(dB)][criteria])
-                plt.plot(x, y, label=r"1/{} {}".format(ratio, network), marker=self.marker_list[1],
-                         linestyle=self.line_style[1], markerfacecolor="none", markersize=8, linewidth=2)
+        # 获取CS数据
+        data_cs = self.dl.load_cs_data(env, ratio, methods)
+        # 解析数据
+        for methdod, val in data_cs.items():
+            y = []
+            for dB in x:
+                y.append(val["{}dB".format(dB)][criteria])
+            plt.plot(x, y, label=r"1/{} {}".format(ratio, methdod), marker=self.marker_list[0],
+                        linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
+        # 获取神经网络数据
+        data_net = self.dl.load_net_data(env, ratio, networks)
+        # 解析数据
+        for network, val in data_net.items():
+            y = []
+            for dB in x:
+                y.append(val["{}dB".format(dB)][criteria])
+            plt.plot(x, y, label=r"1/{} {}".format(ratio, network), marker=self.marker_list[1],
+                        linestyle=self.line_style[0], markerfacecolor="none", markersize=8, linewidth=2)
 
         # 添加描述信息
         criteria_label = self.trans_criteria(criteria)
-        title = r"$\mathrm{xxxx}$对比"
+        title = r"$\mathrm{{r={}}}$".format(ratio)
         xlabel = r"$\mathrm{SNR(dB)}$"
         ylabel = r"$\mathrm{{{}\/\/(bps/Hz)}}$".format(criteria_label) if criteria == "Capacity" else r"$\mathrm{{{}}}$".format(criteria_label)
-        img_name = "./images/{}/{}/CS-Net-{}-{}.{}".format(env, self.CAT, criteria, ratio_list, img_format)
-        use_gird = True
+        img_name = "./images/{}/{}/CS-Net-{}-{}.{}".format(env, self.CAT, criteria, ratio, img_format)
+        use_grid = True
         yticks = config.y_ticks_similarity if criteria == "相似度" else None
         loc = "best"  # "lower right"
-        self.set_description(title, xlabel, ylabel, img_name, use_gird=use_gird, yticks=yticks, loc=loc)
+        self.set_description(xlabel, ylabel, img_name, use_grid=use_grid, yticks=yticks, loc=loc)
 
 
 if __name__ == '__main__':
