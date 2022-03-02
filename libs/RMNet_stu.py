@@ -13,7 +13,7 @@ class RMNetStuConfiguration(object):
     stride = 1
     padding = 1
     sys_capacity_ratio = 60  # 系统容量倍率（可视化时使用）
-    network_name = "RMNetStu"  # 网络名称
+    network_name = "RMStuNet"  # 网络名称
 
 
 class RMNetStu(nn.Module):

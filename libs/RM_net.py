@@ -14,7 +14,7 @@ class RMNetConfiguration(object):
     padding = 1
     sys_capacity_ratio = 60  # 系统容量倍率（可视化时使用）
     leak_relu_slope = 0.3
-    network_name = "RMNet"  # 网络名称
+    network_name = "RM-Net"  # 网络名称
 
 
 class RMNet(nn.Module):
@@ -57,7 +57,7 @@ class Encoder(nn.Module):
         """
         # 卷积
         x = input_.view(-1, 2, 32, 32)
-        x = self.csi_conv1_combo(x)  # [batch_size, 2, 32, 32]
+        x = res_unit(self.csi_conv1_combo, x)  # [batch_size, 2, 32, 32]
         # 全连接
         x = x.view(-1, 2048)  # [batch_size, 2048]
         output = self.fc_compress(x)  # [batch_size, 2048/ratio]
@@ -90,8 +90,6 @@ class Decoder(nn.Module):
         :param encoder_output: [batch_size,  2048/ratio]
         :return: [batch_size, 2048]
         """
-        # 标准化
-        x = net_standardization(x)  # [batch_size, 2048]
         # 全连接
         x = self.fc_restore(x)  # [batch_size, 2048]
         x = x.view(-1, 2, 32, 32)  # [batch_size, 2, 32, 32]

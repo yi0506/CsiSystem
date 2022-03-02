@@ -7,7 +7,7 @@ from utils import gs_noise
 
 
 class TDFISTANetConfiguration(object):
-    """ISTANetplus配置"""
+    """TDFISTANet配置"""
     layer_num = 5
     maxtrix_len = 32  # 信号矩阵为方阵，其长度
     channel_num = 2  # 矩阵通道数
@@ -15,7 +15,7 @@ class TDFISTANetConfiguration(object):
     kerner_size = 3
     stride = 1
     padding = 1
-    network_name = "TD-FISTANet"  # 网络名称
+    network_name = "TD-FISTA-Net"  # 网络名称
 
 
 class TDFISTANet(torch.nn.Module):

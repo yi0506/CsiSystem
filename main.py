@@ -72,24 +72,10 @@ class Tu_He_Biao(object):
         NetPlot().draw("comm", networks, criteria, img_format, ratio_list)
         CSPlot().draw("comm", methods, criteria, img_format, ratio_list)
 
-    def all_form(self, ratio_list=config.ratio_list):
-        self.one_form(ratio_list)
-
-    def one_form(self, v, ratio_list=config.ratio_list):
-        """输出系统耗时json文件，cs、old_csi、net之间的对比"""
-        networks = [
-            RMNetConfiguration.network_name,
-            CSINetConfiguration.network_name
-        ]
-        methods = ["{}-{}".format(CSConfiguration.sparse_dct, CSConfiguration.omp)]
-        tf = TimeForm()
-        tf.csi_time_form("comm", methods, networks, ratio_list)
-
 
 if __name__ == '__main__':
     x1 = Xun_Lian_He_Ce_Shi()
     y1 = Tu_He_Biao()
     x1.net_csi()
     x1.cs_csi()
-    y1.all_form()
     y1.all_plot()

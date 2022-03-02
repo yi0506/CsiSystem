@@ -25,8 +25,8 @@ class TestRetLoader(object):
 
             y_dict: {
                 "RMNet": {
-                            "0dB":{loss、similarity、time、capacity},
-                            "2dB": {loss、similarity、time、capacity}
+                            "0dB":{loss, similarity, capacity},
+                            "2dB": {loss, similarity, capacity}
                         },
                 "CSINet": {...}
                 }
@@ -52,7 +52,7 @@ class TestRetLoader(object):
 
         y_dict：不同压缩率下，每种方式在不同信噪比下的测试结果,包含不同压缩率的y_one_ratio，
         y_dict: {
-                    "dct_idct": {"0dB":{similarity, time, loss, capacity}, "5dB":{},...},
+                    "dct_idct": {"0dB":{similarity, loss, capacity}, "5dB":{},...},
                     "dct_omp":{...},
                 }
         """
@@ -106,9 +106,7 @@ class Plot(metaclass=ABCMeta):
 
         :return: "Time", "\rho", "NMSE", "Capacity"
         """
-        if criteria == "time":
-            return "Time"  # time大写
-        elif criteria == "相似度":
+        if criteria == "相似度":
             return r"\rho"  # 将"相似度"转化为希腊字母"rho"
         else:
             return criteria
@@ -268,39 +266,6 @@ class CSNetMultiRatio(Plot):
         yticks = config.y_ticks_similarity if criteria == "相似度" else None
         loc = "best"  # "lower right"
         self.set_description(title, xlabel, ylabel, img_name, use_gird=use_gird, yticks=yticks, loc=loc)
-
-
-class TimeForm(object):
-    CAT = "json"
-
-    """生成系统耗时的Json数据文件"""
-    dl = TestRetLoader()
-
-    def csi_time_form(self, env, methods, networks, ratio_list):
-        """在不同压缩率下，对不同算法的系统耗时以Json形式输出"""
-        x = config.SNRs
-        time_dic = {}
-        for ratio in ratio_list:
-            time_dic[ratio] = {}
-            # 神经网络数据
-            net_data = self.dl.load_net_data(env, ratio, networks)
-            for network, val in net_data.items():
-                # 取平均时间
-                y = 0
-                for dB in x:
-                    y += val["{}dB".format(dB)]["time"]
-                time_dic[ratio][network] = y / len(x)
-            # CS数据
-            cs_data = self.dl.load_cs_data(env, ratio, methods)
-            for method, val in cs_data.items():
-                y = 0
-                for dB in x:
-                    y += val["{}dB".format(dB)]["time"]
-                time_dic[ratio][method] = y / len(x)
-        file_path = "./images/{}/{}/time.json".format(env, self.CAT)
-        rec_mkdir(file_path)
-        json.dump(time_dic, open(file_path, "w", encoding="utf-8"), ensure_ascii=False, indent=4)
-        print("{} is done".format(file_path))
 
 
 if __name__ == '__main__':
