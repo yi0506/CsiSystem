@@ -63,7 +63,7 @@ class TestRetLoader(object):
             if env.upper() == "HS":
                 y_dict[md] = pickle.load(open("./test_result/cs/HS/{}km/ratio_{}/{}.pkl".format(v, ratio, md), "rb"))
             elif env.lower() == "comm":
-                y_dict[md] = pickle.load(open("./test_result/cs/common/ratio_{}/{}.pkl".format(v, ratio, md), "rb"))
+                y_dict[md] = pickle.load(open("./test_result/cs/common/ratio_{}/{}.pkl".format(ratio, md), "rb"))
         return y_dict
 
 
