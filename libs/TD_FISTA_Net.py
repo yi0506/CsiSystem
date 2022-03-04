@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
 
-from utils import gs_noise
+from .utils import gs_noise
 
 
 class TDFISTANetConfiguration(object):
@@ -102,16 +102,16 @@ class BasicBlock(torch.nn.Module):
         self.lambda_step = nn.Parameter(torch.Tensor([0.5]))  # 梯度迭代步长
         self.soft_thr = nn.Parameter(torch.Tensor([0.01]))  # 阈值函数步长
         self.eta_step = nn.Parameter(torch.Tensor([0.01]))  # 加速梯度步长
-        self.conv_D = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 2, 3, 3)))  # 32个，2通道，3*3卷积核
+        self.conv_D = nn.Parameter(init.xavier_normal_(torch.Tensor(8, 2, 3, 3)))  # 32个，2通道，3*3卷积核
 
-        self.conv1_forward = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 32, 3, 3)))
-        self.conv2_forward = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 32, 3, 3)))
-        self.conv1_backward = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 32, 3, 3)))
-        self.conv2_backward = nn.Parameter(init.xavier_normal_(torch.Tensor(32, 32, 3, 3)))
+        self.conv1_forward = nn.Parameter(init.xavier_normal_(torch.Tensor(8, 8, 3, 3)))
+        self.conv2_forward = nn.Parameter(init.xavier_normal_(torch.Tensor(8, 8, 3, 3)))
+        self.conv1_backward = nn.Parameter(init.xavier_normal_(torch.Tensor(8, 8, 3, 3)))
+        self.conv2_backward = nn.Parameter(init.xavier_normal_(torch.Tensor(8, 8, 3, 3)))
 
-        self.conv_G = nn.Parameter(init.xavier_normal_(torch.Tensor(2, 32, 3, 3)))
+        self.conv_G = nn.Parameter(init.xavier_normal_(torch.Tensor(2, 8, 3, 3)))
 
-        self.soft_thread = SoftThreadFunc()
+        # self.soft_thread = SoftThreadFunc()
 
     def forward(self, y_k, h_k, PhiTPhi, PhiTb):
         """
@@ -132,8 +132,8 @@ class BasicBlock(torch.nn.Module):
         x_forward = F.conv2d(x, self.conv2_forward, padding=1)
 
         # soft(·) (batch, 32, 32, 32)
-        # x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
-        x = self.soft_thread(x)
+        x = torch.mul(torch.sign(x_forward), F.relu(torch.abs(x_forward) - self.soft_thr))
+        # x = self.soft_thread(x)
 
         # S~(·)  (batch, 32, 32, 32)
         x = F.conv2d(x, self.conv1_backward, padding=1)

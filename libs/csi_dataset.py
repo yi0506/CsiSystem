@@ -7,10 +7,10 @@ import numpy as np
 import platform
 import os
 
-from libs import config
-from libs.utils import load_Phi
-from libs.ISTA_Net import ISTANetConfiguration
-from libs.CSP_net import CSPNetConfiguration
+from . import config
+from .utils import load_Phi
+from .ISTA_Net import ISTANetConfiguration
+from .CSP_net import CSPNetConfiguration
 
 
 class CsiDataset(Dataset):

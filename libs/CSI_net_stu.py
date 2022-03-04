@@ -2,7 +2,7 @@
 """原始csi_net网络模型的构建、训练、测试并保存结果"""
 import torch.nn as nn
 
-from utils import gs_noise, res_unit
+from .utils import gs_noise, res_unit
 
 
 class CSINetStuConfiguration(object):

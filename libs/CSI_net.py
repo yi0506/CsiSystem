@@ -3,8 +3,8 @@
 import torch.nn as nn
 from torchsummary import summary
 
-import config
-from utils import gs_noise, res_unit
+from . import config
+from .utils import gs_noise, res_unit
 
 
 class CSINetConfiguration(object):
@@ -34,10 +34,9 @@ class CsiNet(nn.Module):
 
     def forward(self, input_, snr):
         """前向传播过程"""
-        encoder_output = self.encoder(input_)
-        add_noise = gs_noise(encoder_output, snr)
-        decoder_output = self.decoder(add_noise)
-        return decoder_output
+        x = self.encoder(input_)
+        x = gs_noise(x, snr)
+        return self.decoder(x)
 
 
 class Encoder(nn.Module):

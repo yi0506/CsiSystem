@@ -4,11 +4,10 @@
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import pickle
-import json
 from abc import ABCMeta, abstractmethod
 
-import config
-from utils import rec_mkdir
+from . import config
+from .utils import rec_mkdir
 
 
 class TestRetLoader(object):

@@ -4,9 +4,9 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-import config
-from utils import rec_mkdir, obj_wrapper
-from csi_dataset import COMM_ValDataset
+from . import config
+from .utils import rec_mkdir, obj_wrapper
+from .csi_dataset import COMM_ValDataset
 
 
 comm_val_dataloader = COMM_ValDataset().get_data_loader()

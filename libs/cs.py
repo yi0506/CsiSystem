@@ -7,10 +7,9 @@ import tqdm
 import os
 from abc import ABCMeta, abstractmethod
 
-from libs import config
-from cs_restore_method import OMP, SP, SAMP, generate_fft_sparse_base, generate_dct_sparse_base, \
-    generate_eye_sparse_base
-from utils import nmse, load_Phi, cal_capacity
+from . import config
+from .cs_restore_method import OMP, SP, SAMP, generate_fft_sparse_base, generate_dct_sparse_base, generate_eye_sparse_base
+from .utils import nmse, load_Phi, cal_capacity
 
 
 class CSConfiguration(object):

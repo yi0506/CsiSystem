@@ -3,8 +3,8 @@ import torch.nn.functional as F
 import torch
 from torch.nn.functional import cosine_similarity
 
-import config
-from utils import obj_wrapper, nmse, cal_capacity
+from . import config
+from .utils import obj_wrapper, nmse, cal_capacity
 
 
 @obj_wrapper

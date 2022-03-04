@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
 
-from utils import gs_noise
+from .utils import gs_noise
 
 
 class ISTANetplusConfiguration(object):

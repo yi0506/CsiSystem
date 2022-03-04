@@ -1,7 +1,7 @@
 """csi网络模型"""
 import torch.nn as nn
 
-from utils import gs_noise, res_unit, net_standardization
+from .utils import gs_noise, res_unit, net_standardization
 
 
 class RMNetStuConfiguration(object):
@@ -30,10 +30,9 @@ class RMNetStu(nn.Module):
         self.decoder = Decoder(ratio)
 
     def forward(self, input_, snr):
-        encoder_output = self.encoder(input_)
-        add_noise = gs_noise(encoder_output, snr)
-        decoder_output = self.decoder(add_noise)
-        return decoder_output
+        x = self.encoder(input_)
+        x = gs_noise(x, snr)
+        return self.decoder(x)
 
 
 class Encoder(nn.Module):

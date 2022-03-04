@@ -3,8 +3,8 @@
 import torch.nn as nn
 from torchsummary import summary
 
-import config
-from utils import res_unit, net_standardization, gs_noise
+from . import config
+from .utils import res_unit, net_standardization, gs_noise
 
 
 class CSPNetConfiguration(object):
