@@ -13,7 +13,7 @@ from .ISTA_Net import ISTANet, ISTANetConfiguration
 from .FISTA_Net import FISTANet, FISTANetConfiguration
 from .TD_FISTA_Net import TDFISTANet, TDFISTANetConfiguration
 from .utils import rec_mkdir, SingletonType
-from .test import csp_test, test, comm_csi_test, ista_test, td_fista_test, fista_test
+from .test import csp_test, test, ista_test, td_fista_test, fista_test
 from .train import fista_train, td_fista_train, train, train_stu, csp_train, ista_train
 from .csi_dataset import HS_RMNetDataset, HS_CSINetDataset, HS_RMStuNetDataset, CSPNetDataset, HS_CSINetStuDataset, HS_CSDataset
 from .csi_dataset import COMM_CSDataset,  COMM_CSINetDataset, COMM_CSINetStuDataset, COMM_RMNetDataset, COMM_RMNetStuDataset
@@ -202,7 +202,6 @@ class COMM_CSINet_CSI(COMM_Net_CSI):
     CSI_MODEL = CsiNet  # 执行CSI的模型
     CSI_DATASET = COMM_CSINetDataset  # 执行CSI的模型的数据集
     NETWORK_NAME = CSINetConfiguration.network_name  # 网络模型名称
-    TEST_FUNC = comm_csi_test  # 网络测试函数指针
 
 
 class COMM_RMNet_CSI(COMM_Net_CSI):
@@ -210,7 +209,6 @@ class COMM_RMNet_CSI(COMM_Net_CSI):
     CSI_MODEL = RMNet  # 执行CSI的模型
     CSI_DATASET = COMM_RMNetDataset  # 执行CSI的模型的数据集
     NETWORK_NAME = RMNetConfiguration.network_name  # 网络模型名称
-    TEST_FUNC = comm_csi_test  # 网络测试函数指针
 
 
 class COMM_NetStu_CSI(COMM_Net_CSI):

@@ -101,7 +101,6 @@ def gs_noise(x, snr):
     :param snr: 信噪比
     :return: 加入噪声后的结果
     """
-    return x
     if snr is None:
         return x
     with torch.no_grad():

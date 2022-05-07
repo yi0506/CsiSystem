@@ -109,49 +109,6 @@ def ista_test(model, Phi, Qinit, data_loader, snr, info: str = ""):
 
 
 @obj_wrapper
-def comm_csi_test(model, data_loader, snr, info: str = ""):
-    """
-    评估模型，并返回结果
-
-    model: 模型
-    model_path: 模型的加载路径
-    data_loader: 数据集迭代器
-    snr: 加入噪声的信噪比
-    info: 额外的结果描述信息
-    model_snr: 加入某种信噪比噪声的情况下训练好的模型
-
-    """
-    model.to(config.device).eval()
-    # 测试模型在某个信噪比下的效果，作为模型的评价效果
-    nmse_list = list()
-    similarity_list = list()
-    capacity_list = list()
-    loss_list = list()
-    for _, input_ in enumerate(data_loader):
-        with torch.no_grad():
-            input_ = input_.to(config.device)
-            output = model(input_, snr)
-            input_ = input_ - 0.5
-            output = output - 0.5
-            cur_similarity = cosine_similarity(output, input_, dim=-1).mean().cpu().item()
-            cur_loss = F.mse_loss(output, input_).item()
-            cur_nmse = nmse(output, input_, "torch")
-            cur_capacity = cal_capacity(output, snr)
-            capacity_list.append(cur_capacity / input_.size()[0])
-            nmse_list.append(cur_nmse)
-            loss_list.append(cur_loss)
-            similarity_list.append(cur_similarity)
-
-    # 计算平均相似度与损失
-    avg_nmse = np.mean(nmse_list)
-    avg_similarity = np.mean(similarity_list)
-    avg_capacity = np.mean(capacity_list)
-    avg_loss = np.mean(loss_list)
-    print(info + "\tSNR:{}dB\tloss:{:.5e}\tnmse:{:.3f}\tsimilarity:{}\tcapacity:{}".format(snr, avg_loss, avg_nmse, avg_similarity, avg_capacity))
-    return {"相似度": avg_similarity, "NMSE": avg_nmse}
-
-
-@obj_wrapper
 def test(model, data_loader, snr, info: str = ""):
     """
     评估模型，并返回结果
